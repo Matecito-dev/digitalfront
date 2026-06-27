@@ -31,7 +31,9 @@
   (async function () {
     try {
       var r = await window.DfAuth.handleOAuthCallback();
-      if (r && r.token) {
+      if (r && r.token && r.profile) {
+        sessionStorage.setItem("df_oauth_fresh", "1");
+        sessionStorage.setItem("df_oauth_pending", JSON.stringify({ token: r.token, profile: r.profile }));
         location.replace("/");
         return;
       }
@@ -604,13 +606,6 @@ body.mobile-play #connection-dot { display: inline-block; }
 </style>
 </head>
 <body>
-<script>
-if (window.__DF_OAUTH_BOOT) {
-  document.open();
-  document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Digital Front — Iniciando sesión</title></head><body style="margin:0;background:#050810;color:#e6edf3;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">Completando inicio de sesión…</body></html>');
-  document.close();
-}
-</script>
 
 <!-- Map canvas -->
 <div id="game"></div>

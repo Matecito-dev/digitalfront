@@ -305,7 +305,24 @@
       return { error: e.message || "OAuth falló" };
     }
 
+    const pendingRaw = sessionStorage.getItem("df_oauth_pending");
+    if (pendingRaw) {
+      try {
+        const pending = JSON.parse(pendingRaw);
+        sessionStorage.removeItem("df_oauth_pending");
+        sessionStorage.removeItem("df_oauth_fresh");
+        if (pending?.token && pending?.profile) {
+          saveDfSession(pending.token, pending.profile);
+          return { token: pending.token, profile: pending.profile };
+        }
+      } catch { /* fall through */ }
+    }
+
     const stored = loadDfSession();
+    if (stored?.token && stored?.profile && sessionStorage.getItem("df_oauth_fresh")) {
+      sessionStorage.removeItem("df_oauth_fresh");
+      return { token: stored.token, profile: stored.profile };
+    }
     if (stored?.token) {
       try {
         const profile = await validateDfSession(stored.token);

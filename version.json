@@ -1,8 +1,8 @@
 {
-  "version": "0.0.5",
-  "title": "Botones OAuth clicables",
+  "version": "0.0.6",
+  "title": "Sesión OAuth al entrar al juego",
   "changelog": [
-    "Botones GitHub/X ya no quedan deshabilitados y responden al clic.",
+    "Tras login GitHub/X ya entrás al mapa con tu perfil de comandante.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",
     "Bárbaros ya no reaparecen al instante tras derrotarlos.",
