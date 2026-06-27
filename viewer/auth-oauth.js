@@ -239,10 +239,7 @@
   }
 
   function cleanOAuthUrl() {
-    const u = new URL(location.href);
-    u.search = "";
-    u.pathname = "/";
-    history.replaceState(null, "", u.pathname + u.hash);
+    /* El redirect post-OAuth recarga en / — no usar replaceState aquí. */
   }
 
   function isOAuthCallbackPath() {
@@ -298,13 +295,6 @@
   }
 
   async function tryRestoreDfSession() {
-    try {
-      const oauth = await handleOAuthCallback();
-      if (oauth?.token && oauth?.profile) return oauth;
-    } catch (e) {
-      return { error: e.message || "OAuth falló" };
-    }
-
     const pendingRaw = sessionStorage.getItem("df_oauth_pending");
     if (pendingRaw) {
       try {

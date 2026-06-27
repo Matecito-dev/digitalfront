@@ -22,41 +22,22 @@
 <script src="auth-oauth.js"></script>
 <script>
 (function () {
-  var path = location.pathname.replace(/\/$/, "");
-  var isCb = path === "/auth/github/callback" || path === "/auth/x/callback";
-  if (!isCb) return;
   var q = new URLSearchParams(location.search);
-  if (!q.get("code") && !q.get("error")) return;
-  window.__DF_OAUTH_BOOT = true;
-  (async function () {
-    try {
-      var r = await window.DfAuth.handleOAuthCallback();
-      if (r && r.token && r.profile) {
-        sessionStorage.setItem("df_oauth_fresh", "1");
-        sessionStorage.setItem("df_oauth_pending", JSON.stringify({ token: r.token, profile: r.profile }));
-        location.replace("/");
-        return;
-      }
-      sessionStorage.setItem("df_oauth_error", "No se pudo completar el inicio de sesión.");
-    } catch (e) {
-      sessionStorage.setItem("df_oauth_error", (e && e.message) || "OAuth falló");
-    }
-    location.replace("/");
-  })();
-})();
-(function () {
-  var path = location.pathname.replace(/\/$/, "") || "/";
-  if (path !== "/") return;
+  if (q.get("signed_in") === "1") {
+    document.documentElement.classList.add("df-await-session-ui");
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
   var raw = sessionStorage.getItem("df_oauth_pending");
-  if (!raw) return;
-  try {
-    var pending = JSON.parse(raw);
-    if (pending && pending.token && pending.profile) {
-      localStorage.setItem("df_session", JSON.stringify({ token: pending.token, profile: pending.profile }));
-      sessionStorage.setItem("df_oauth_fresh", "1");
-      document.documentElement.classList.add("df-await-session-ui");
-    }
-  } catch (e) { /* ignore */ }
+  if (raw) {
+    try {
+      var pending = JSON.parse(raw);
+      if (pending && pending.token && pending.profile) {
+        localStorage.setItem("df_session", JSON.stringify({ token: pending.token, profile: pending.profile }));
+        sessionStorage.setItem("df_oauth_fresh", "1");
+        document.documentElement.classList.add("df-await-session-ui");
+      }
+    } catch (e) { /* ignore */ }
+  }
 })();
 </script>
 <link rel="stylesheet" href="hud.css">
@@ -6836,6 +6817,16 @@ async function guestLogin(username) {
 }
 
 async function tryRestoreDfSession() {
+  const urlParams = new URLSearchParams(location.search);
+  const urlErr = urlParams.get("oauth_error");
+  if (urlErr) {
+    history.replaceState(null, "", location.pathname + location.hash);
+    showLoginOverlay(decodeURIComponent(urlErr));
+    return;
+  }
+  if (urlParams.get("signed_in") === "1") {
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
   const oauthErr = sessionStorage.getItem("df_oauth_error");
   if (oauthErr) {
     sessionStorage.removeItem("df_oauth_error");
@@ -7689,7 +7680,7 @@ document.getElementById("inp-seed")?.addEventListener("input", e => {
 });
 
 if (window.DfAuth?.isOAuthCallbackPath?.()) {
-  /* OAuth en curso desde el script del head */
+  /* Callback OAuth en oauth-callback.html */
 } else {
   bootAuthOnce();
 }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Front — Iniciando sesión</title>
+<script src="config.js"></script>
+<script src="auth-oauth.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (!q.get("code") && !q.get("error")) {
+    location.replace("/");
+    return;
+  }
+  (async function () {
+    try {
+      var r = await window.DfAuth.handleOAuthCallback();
+      if (r && r.token && r.profile) {
+        localStorage.setItem("df_session", JSON.stringify({ token: r.token, profile: r.profile }));
+        sessionStorage.setItem("df_oauth_fresh", "1");
+        sessionStorage.setItem("df_oauth_pending", JSON.stringify({ token: r.token, profile: r.profile }));
+        location.replace("/?signed_in=1");
+        return;
+      }
+      location.replace("/?oauth_error=" + encodeURIComponent("No se pudo completar el inicio de sesión."));
+    } catch (e) {
+      location.replace("/?oauth_error=" + encodeURIComponent((e && e.message) || "OAuth falló"));
+    }
+  })();
+})();
+</script>
+</head>
+<body style="margin:0;background:#050810;color:#e6edf3;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;text-align:center;padding:24px">
+  <div>
+    <p style="font-size:18px;font-weight:600;margin:0 0 8px">Completando inicio de sesión…</p>
+    <p style="font-size:13px;color:#8b949e;margin:0">No cierres esta pestaña.</p>
+  </div>
+</body>
+</html>

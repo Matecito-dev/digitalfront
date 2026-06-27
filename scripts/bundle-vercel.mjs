@@ -46,6 +46,7 @@ const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
   'session-boot.js',
+  'oauth-callback.html',
   'version.js',
   'terrain-tactics.js',
   'tactical-orders.js',

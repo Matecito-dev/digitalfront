@@ -2,8 +2,8 @@
   "buildCommand": "npm run build:web",
   "outputDirectory": "web",
   "rewrites": [
-    { "source": "/auth/github/callback", "destination": "/index.html" },
-    { "source": "/auth/x/callback", "destination": "/index.html" },
+    { "source": "/auth/github/callback", "destination": "/oauth-callback.html" },
+    { "source": "/auth/x/callback", "destination": "/oauth-callback.html" },
     { "source": "/api/:path*", "destination": "https://api.gamedevforge.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
