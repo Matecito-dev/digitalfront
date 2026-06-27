@@ -1,8 +1,8 @@
 {
-  "version": "0.0.10",
-  "title": "Fix rutas callback OAuth",
+  "version": "0.0.11",
+  "title": "Botón Entrar al mundo",
   "changelog": [
-    "Corregido login GitHub/X: scripts del callback ya cargan desde la raíz del sitio.",
+    "Corregido «Entrar al mundo»: responde al clic aunque Phaser siga cargando.",
     "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",

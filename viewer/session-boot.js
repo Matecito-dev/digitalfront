@@ -83,5 +83,71 @@
     if (profile) showSessionUi(profile);
   }
 
+  function showEnterLoading(msg) {
+    const boot = document.getElementById("login-boot-status");
+    const btn = document.getElementById("login-enter-world");
+    if (boot) {
+      boot.style.display = "block";
+      boot.textContent = msg;
+    }
+    if (btn) btn.disabled = true;
+  }
+
+  function hideEnterLoading() {
+    const btn = document.getElementById("login-enter-world");
+    if (btn) btn.disabled = false;
+  }
+
+  function waitUntil(test, maxMs) {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      (function tick() {
+        if (test()) return resolve();
+        if (Date.now() - start > maxMs) return reject(new Error("timeout"));
+        setTimeout(tick, 100);
+      })();
+    });
+  }
+
+  async function tryEnterWorld() {
+    showEnterLoading("Cargando motor del juego…");
+    try {
+      await waitUntil(() => typeof window.startGameAfterAuth === "function", 90000);
+      await waitUntil(() => window.__DF_AUTH_READY === true, 90000);
+      window.startGameAfterAuth();
+      const boot = document.getElementById("login-boot-status");
+      if (boot) boot.style.display = "none";
+    } catch {
+      showEnterLoading("No se pudo cargar el juego. Recargá con Ctrl+Shift+R.");
+    } finally {
+      hideEnterLoading();
+    }
+  }
+
+  function tryLogout() {
+    if (typeof window.logoutSession === "function") {
+      window.logoutSession();
+      return;
+    }
+    localStorage.removeItem("df_session");
+    sessionStorage.removeItem("df_oauth_pending");
+    sessionStorage.removeItem("df_oauth_fresh");
+    location.reload();
+  }
+
+  document.addEventListener("click", (e) => {
+    const id = e.target?.id;
+    if (id === "login-enter-world") {
+      e.preventDefault();
+      void tryEnterWorld();
+    } else if (id === "login-logout") {
+      e.preventDefault();
+      tryLogout();
+    }
+  });
+
+  window.DfEnterWorld = tryEnterWorld;
+  window.DfLogout = tryLogout;
+
   boot();
 })();

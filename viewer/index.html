@@ -751,8 +751,8 @@ html.df-await-session-ui #login-boot-status { display: block; }
           </div>
         </div>
         <div class="login-session-actions">
-          <button type="button" id="login-enter-world">Entrar al mundo</button>
-          <button type="button" class="sec" id="login-logout">Cerrar sesión</button>
+          <button type="button" id="login-enter-world" onclick="window.DfEnterWorld&&window.DfEnterWorld();return false;">Entrar al mundo</button>
+          <button type="button" class="sec" id="login-logout" onclick="window.DfLogout&&window.DfLogout();return false;">Cerrar sesión</button>
         </div>
         <p id="login-boot-status">Restaurando tu sesión…</p>
       </div>
@@ -6866,6 +6866,7 @@ async function tryRestoreDfSession() {
     showLoginOverlay("No se pudo conectar al servidor. ¿Está levantado?");
   } finally {
     ensureLoginUiVisible();
+    window.__DF_AUTH_READY = true;
   }
 }
 
@@ -6912,6 +6913,14 @@ function startSimTransport() {
 
 function startGameAfterAuth() {
   if (gameStarted) return;
+  if (!dfAuthToken) {
+    const stored = window.DfAuth?.loadDfSession?.();
+    if (stored?.token && stored?.profile) saveDfSession(stored.token, stored.profile);
+  }
+  if (!dfAuthToken) {
+    showLoginOverlay("Sesión no encontrada. Volvé a iniciar sesión.");
+    return;
+  }
   gameStarted = true;
   window.DigitalFrontBgm?.playGame();
   hideLoginOverlay();
@@ -6931,8 +6940,18 @@ function startGameAfterAuth() {
   startSimTransport();
   setTimeout(generate, 300);
 }
-document.getElementById("login-enter-world")?.addEventListener("click", () => startGameAfterAuth());
-document.getElementById("login-logout")?.addEventListener("click", logoutSession);
+window.startGameAfterAuth = startGameAfterAuth;
+window.logoutSession = logoutSession;
+document.getElementById("login-enter-world")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (window.DfEnterWorld) void window.DfEnterWorld();
+  else startGameAfterAuth();
+});
+document.getElementById("login-logout")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (window.DfLogout) window.DfLogout();
+  else logoutSession();
+});
 document.getElementById("login-submit")?.addEventListener("click", submitGuestLogin);
 document.getElementById("login-username")?.addEventListener("keydown", e => {
   if (e.key === "Enter") submitGuestLogin();
