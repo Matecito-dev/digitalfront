@@ -20,6 +20,29 @@
 <script src="version.js"></script>
 <script src="branding.js"></script>
 <script src="auth-oauth.js"></script>
+<script>
+(function () {
+  var path = location.pathname.replace(/\/$/, "");
+  var isCb = path === "/auth/github/callback" || path === "/auth/x/callback";
+  if (!isCb) return;
+  var q = new URLSearchParams(location.search);
+  if (!q.get("code") && !q.get("error")) return;
+  window.__DF_OAUTH_BOOT = true;
+  (async function () {
+    try {
+      var r = await window.DfAuth.handleOAuthCallback();
+      if (r && r.token) {
+        location.replace("/");
+        return;
+      }
+      sessionStorage.setItem("df_oauth_error", "No se pudo completar el inicio de sesión.");
+    } catch (e) {
+      sessionStorage.setItem("df_oauth_error", (e && e.message) || "OAuth falló");
+    }
+    location.replace("/");
+  })();
+})();
+</script>
 <link rel="stylesheet" href="hud.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -583,6 +606,13 @@ body.mobile-play #connection-dot { display: inline-block; }
 </style>
 </head>
 <body>
+<script>
+if (window.__DF_OAUTH_BOOT) {
+  document.open();
+  document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Digital Front — Iniciando sesión</title></head><body style="margin:0;background:#050810;color:#e6edf3;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">Completando inicio de sesión…</body></html>');
+  document.close();
+}
+</script>
 
 <!-- Map canvas -->
 <div id="game"></div>
@@ -6668,7 +6698,8 @@ function showLoginOverlay(message) {
   const err = document.getElementById("login-error");
   if (overlay) overlay.classList.remove("hidden");
   if (err) err.textContent = message ?? "";
-  document.getElementById("status").textContent = "Identifícate para entrar al batallón";
+  const status = document.getElementById("status");
+  if (status) status.textContent = "Identifícate para entrar al batallón";
   applyLoginVersionInfo();
   window.DigitalFrontBgm?.init();
   window.DigitalFrontBgm?.playMenu();
@@ -6684,6 +6715,12 @@ async function guestLogin(username) {
 }
 
 async function tryRestoreDfSession() {
+  const oauthErr = sessionStorage.getItem("df_oauth_error");
+  if (oauthErr) {
+    sessionStorage.removeItem("df_oauth_error");
+    showLoginOverlay(oauthErr);
+    return;
+  }
   if (window.DfAuth?.isOAuthCallbackPath?.()) {
     showLoginOverlay("Completando inicio de sesión…");
   }
@@ -6691,7 +6728,7 @@ async function tryRestoreDfSession() {
     showSettingsOverlay();
     return;
   }
-  document.getElementById("status").textContent = "Verificando sesión…";
+  document.getElementById("status")?.textContent = "Verificando sesión…";
   try {
     const restored = await window.DfAuth.tryRestoreDfSession();
     if (restored?.error) {
@@ -7547,7 +7584,7 @@ document.getElementById("inp-seed")?.addEventListener("input", e => {
 });
 
 if (window.DfAuth?.isOAuthCallbackPath?.()) {
-  tryRestoreDfSession();
+  /* OAuth en curso desde el script del head */
 } else {
   window.addEventListener('load', () => tryRestoreDfSession());
 }

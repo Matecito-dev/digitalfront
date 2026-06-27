@@ -273,23 +273,28 @@
     }
     sessionStorage.removeItem(OAUTH_STATE_KEY);
 
-    let data;
-    if (path === GITHUB_CALLBACK) {
-      const redirectUri = currentRedirectUri(GITHUB_CALLBACK, null);
-      data = await exchangeOAuth("/api/auth/oauth/github", { code, redirectUri });
-    } else {
-      const codeVerifier = loadPkceVerifier();
-      const redirectUri = loadStoredRedirectUri() || currentRedirectUri(X_CALLBACK, null);
-      if (!codeVerifier) {
-        cleanOAuthUrl();
-        throw new Error("Faltan datos de X (PKCE). Volvé a pulsar «Continuar con X».");
+    try {
+      let data;
+      if (path === GITHUB_CALLBACK) {
+        const redirectUri = currentRedirectUri(GITHUB_CALLBACK, null);
+        data = await exchangeOAuth("/api/auth/oauth/github", { code, redirectUri });
+      } else {
+        const codeVerifier = loadPkceVerifier();
+        const redirectUri = loadStoredRedirectUri() || currentRedirectUri(X_CALLBACK, null);
+        if (!codeVerifier) {
+          throw new Error("Faltan datos de X (PKCE). Volvé a pulsar «Continuar con X».");
+        }
+        data = await exchangeOAuth("/api/auth/oauth/x", { code, codeVerifier, redirectUri });
       }
-      data = await exchangeOAuth("/api/auth/oauth/x", { code, codeVerifier, redirectUri });
+      clearPkceStorage();
+      saveDfSession(data.token, data.profile);
+      cleanOAuthUrl();
+      return data;
+    } catch (e) {
+      cleanOAuthUrl();
+      clearPkceStorage();
+      throw e;
     }
-    clearPkceStorage();
-    saveDfSession(data.token, data.profile);
-    cleanOAuthUrl();
-    return data;
   }
 
   async function tryRestoreDfSession() {

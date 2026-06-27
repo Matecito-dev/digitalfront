@@ -1,8 +1,8 @@
 {
-  "version": "0.0.3",
-  "title": "Login GitHub corregido",
+  "version": "0.0.4",
+  "title": "OAuth callback inmediato",
   "changelog": [
-    "Arreglado login con GitHub: el callback ya completa la sesión.",
+    "Login GitHub/X: el callback ya no espera a cargar Phaser (menos RAM, más fiable).",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",
     "Bárbaros ya no reaparecen al instante tras derrotarlos.",
