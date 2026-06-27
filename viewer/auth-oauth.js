@@ -330,21 +330,44 @@
     const ghBtn = document.getElementById("login-github");
     const xBtn = document.getElementById("login-x");
     if (!ghBtn && !xBtn) return;
+    const baked = window.DF_OAUTH || {};
+    const bakedGh = pickProvider(null, baked.github);
+    const bakedX = pickProvider(null, baked.x);
+    if (ghBtn) ghBtn.title = bakedGh ? "" : "GitHub OAuth no configurado";
+    if (xBtn) xBtn.title = bakedX ? "" : "X OAuth no configurado";
     try {
       const providers = await fetchProviders();
-      if (ghBtn) {
-        ghBtn.disabled = !providers?.github;
-        ghBtn.title = providers?.github ? "" : "GitHub OAuth no configurado";
-      }
-      if (xBtn) {
-        xBtn.disabled = !providers?.x;
-        xBtn.title = providers?.x ? "" : "X OAuth no configurado";
-      }
-    } catch {
-      if (ghBtn) ghBtn.disabled = true;
-      if (xBtn) xBtn.disabled = true;
+      if (ghBtn) ghBtn.title = providers?.github ? "" : "GitHub OAuth no configurado";
+      if (xBtn) xBtn.title = providers?.x ? "" : "X OAuth no configurado";
+    } catch { /* baked config sigue usable */ }
+  }
+
+  async function handleOAuthButtonClick(provider) {
+    const err = document.getElementById("login-error");
+    const ghBtn = document.getElementById("login-github");
+    const xBtn = document.getElementById("login-x");
+    const status = document.getElementById("status");
+    if (err) err.textContent = "";
+    if (status) status.textContent = "Redirigiendo al proveedor…";
+    if (ghBtn) ghBtn.classList.add("oauth-loading");
+    if (xBtn) xBtn.classList.add("oauth-loading");
+    try {
+      if (provider === "github") await loginWithGitHub();
+      else await loginWithX();
+    } catch (e) {
+      if (err) err.textContent = e.message || "OAuth no disponible";
+      if (status) status.textContent = "Identifícate para entrar al batallón";
+      if (ghBtn) ghBtn.classList.remove("oauth-loading");
+      if (xBtn) xBtn.classList.remove("oauth-loading");
     }
   }
+
+  document.addEventListener("click", (e) => {
+    const id = e.target?.id;
+    if (id !== "login-github" && id !== "login-x") return;
+    e.preventDefault();
+    void handleOAuthButtonClick(id === "login-github" ? "github" : "x");
+  });
 
   window.DfAuth = {
     DF_SESSION_KEY,
@@ -361,6 +384,7 @@
     tryRestoreDfSession,
     validateDfSession,
     refreshOAuthButtons,
+    handleOAuthButtonClick,
     isOAuthCallbackPath,
   };
 })();

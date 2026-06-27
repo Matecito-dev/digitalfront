@@ -562,18 +562,16 @@ body.mobile-play #connection-dot { display: inline-block; }
 #login-oauth {
   display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;
 }
-#login-oauth button {
+#login-oauth a[role="button"] {
   width: 100%; padding: 10px 12px; font-size: 12px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  border-radius: 8px;
-}
-#login-oauth button:disabled {
-  opacity: 0.45; cursor: not-allowed;
+  border-radius: 8px; text-decoration: none; cursor: pointer; box-sizing: border-box;
 }
 #login-oauth .oauth-github { background: #24292f; border: 1px solid #30363d; color: #e6edf3; }
-#login-oauth .oauth-github:hover:not(:disabled) { background: #30363d; }
+#login-oauth .oauth-github:hover { background: #30363d; }
 #login-oauth .oauth-x { background: #000; border: 1px solid #30363d; color: #e6edf3; }
-#login-oauth .oauth-x:hover:not(:disabled) { background: #161616; }
+#login-oauth .oauth-x:hover { background: #161616; }
+#login-oauth .oauth-loading { opacity: 0.65; pointer-events: none; }
 #login-apk-link { display: none !important; }
 #update-banner {
   display: none;
@@ -658,8 +656,8 @@ if (window.__DF_OAUTH_BOOT) {
       <h2>Entrar al frente</h2>
       <p id="login-tagline">Elegí cómo querés jugar. Tu capitán aparece en el mapa y en el ranking global.</p>
       <div id="login-oauth">
-        <button type="button" class="oauth-github" id="login-github">Continuar con GitHub</button>
-        <button type="button" class="oauth-x" id="login-x">Continuar con X</button>
+        <a href="#" class="oauth-github" id="login-github" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('github');}return false;">Continuar con GitHub</a>
+        <a href="#" class="oauth-x" id="login-x" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('x');}return false;">Continuar con X</a>
       </div>
       <div id="login-links">
         <a id="login-apk-link" href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
@@ -6773,26 +6771,6 @@ async function submitGuestLogin() {
     if (btn) btn.disabled = false;
   }
 }
-
-async function submitOAuthLogin(provider) {
-  const err = document.getElementById("login-error");
-  const ghBtn = document.getElementById("login-github");
-  const xBtn = document.getElementById("login-x");
-  if (err) err.textContent = "";
-  if (ghBtn) ghBtn.disabled = true;
-  if (xBtn) xBtn.disabled = true;
-  try {
-    if (provider === "github") await window.DfAuth.loginWithGitHub();
-    else await window.DfAuth.loginWithX();
-  } catch (e) {
-    if (err) err.textContent = e.message || "OAuth no disponible";
-    if (ghBtn) ghBtn.disabled = false;
-    if (xBtn) xBtn.disabled = false;
-  }
-}
-
-document.getElementById("login-github")?.addEventListener("click", () => submitOAuthLogin("github"));
-document.getElementById("login-x")?.addEventListener("click", () => submitOAuthLogin("x"));
 
 function startSimTransport() {
   connectSimWs();
