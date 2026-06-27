@@ -114,6 +114,25 @@ window.DF_GAME_VERSION_INFO = ${JSON.stringify({
   title: String(versionInfo.title ?? ''),
   changelog: Array.isArray(versionInfo.changelog) ? versionInfo.changelog : [],
 })};
+
+window.paintVersionInfo = function paintVersionInfo() {
+  const info = window.DF_GAME_VERSION_INFO;
+  if (!info) return;
+  const badge = document.getElementById("login-version-badge");
+  const label = document.getElementById("login-version-label");
+  const list = document.getElementById("login-changelog-list");
+  if (badge && info.version) badge.textContent = "v" + info.version;
+  if (label && info.title) label.textContent = info.title;
+  if (list && Array.isArray(info.changelog) && info.changelog.length) {
+    list.innerHTML = info.changelog.map(function (line) { return "<li>" + line + "</li>"; }).join("");
+  }
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", function () { window.paintVersionInfo(); });
+} else {
+  window.paintVersionInfo();
+}
 `;
 await writeFile(join(OUT, 'version.js'), versionJs);
 

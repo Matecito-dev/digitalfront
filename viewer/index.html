@@ -638,8 +638,8 @@ if (window.__DF_OAUTH_BOOT) {
       <p id="login-hero-tagline">Guerra táctica en un mapa que se genera solo. Explora, pelea y sobrevive en el Valle de Bruma.</p>
       <img id="login-hero-banner" src="./assets/dgbanner.png" alt="" onerror="this.style.display='none'">
       <div class="login-version-row">
-        <span class="login-version-badge" id="login-version-badge">v0.0.1</span>
-        <span class="login-version-label" id="login-version-label">Primer acceso público</span>
+        <span class="login-version-badge" id="login-version-badge">v…</span>
+        <span class="login-version-label" id="login-version-label">Cargando novedades…</span>
       </div>
       <section id="login-changelog">
         <h3>Novedades</h3>
@@ -6672,16 +6672,7 @@ function checkGameVersion(serverVersion) {
 }
 
 function applyLoginVersionInfo() {
-  const info = window.DF_GAME_VERSION_INFO;
-  if (!info) return;
-  const badge = document.getElementById('login-version-badge');
-  const label = document.getElementById('login-version-label');
-  const list = document.getElementById('login-changelog-list');
-  if (badge && info.version) badge.textContent = `v${info.version}`;
-  if (label && info.title) label.textContent = info.title;
-  if (list && Array.isArray(info.changelog) && info.changelog.length) {
-    list.innerHTML = info.changelog.map(line => `<li>${line}</li>`).join('');
-  }
+  window.paintVersionInfo?.();
 }
 
 document.getElementById('update-banner-reload')?.addEventListener('click', () => location.reload());
