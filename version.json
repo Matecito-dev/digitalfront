@@ -1,11 +1,10 @@
 {
-  "version": "0.0.14",
-  "title": "Fix carga del juego",
+  "version": "0.0.16",
+  "title": "Chat y campamentos",
   "changelog": [
-    "Corregida la carga de game-core.js (ya no se inyecta como script inline gigante).",
-    "Sesión OAuth sincronizada antes de entrar al mundo — evita «Sesión no encontrada».",
-    "Errores de carga con mensaje concreto en el panel de comandante.",
-    "Pantalla de carga con fondo del juego y barra de progreso real al entrar al mundo.",
-    "Phaser y el núcleo del juego se cargan solo al pulsar «Entrar al mundo»."
+    "Chat funcional tras lazy-load: listeners registrados al entrar al mundo.",
+    "Envío de chat exige WebSocket autenticado; errores rate_limit e invalid_text en español.",
+    "Campamentos: proximidad 6 celdas alineada al servidor, estado del modal coherente.",
+    "Acciones de refugio (curar, reclutar, etc.) ya no cierran el modal; botones deshabilitados fuera de rango."
   ]
 }

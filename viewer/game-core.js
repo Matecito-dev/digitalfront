@@ -2442,6 +2442,7 @@ function mergePlayerSquadFromServer(squad, opts = {}) {
   simEpoch++;
   updateUnitHud();
   updateUnstuckButton();
+  refreshCampModalIfOpen();
 }
 
 function mergeBarbarianGroupsFromServer(serverGroups) {
@@ -2625,7 +2626,7 @@ function handleMobileCampBtn() {
     const d = c ? Math.hypot(o.x - c.x, o.y - c.y) : Infinity;
     if (d < bestD) { bestD = d; nearest = o; }
   }
-  if (nearest && bestD < 12) openCampModal(nearest);
+  if (nearest && bestD <= OUTPOST_INTERACT_CELLS) openCampModal(nearest);
   else showToast("Acércate a un campamento o usa el mapa", 2000);
 }
 
@@ -2661,11 +2662,6 @@ function initMobileHud() {
     tacticalHaptic();
   });
   document.getElementById("mobile-camp-btn")?.addEventListener("click", handleMobileCampBtn);
-  document.getElementById("refuge-exit-btn")?.addEventListener("click", () => {
-    if (playerInsideOutpost) sendCampAction("exit", playerInsideOutpost);
-    else showToast("No estás en un refugio", 2000);
-    tacticalHaptic();
-  });
 }
 
 function pickCampAt(wx, wy, zoom) {
@@ -2924,6 +2920,7 @@ let playerGold = 0;
 let playerWiped = false;
 let playerInsideOutpost = null;
 let playerHomeOutpostId = null;
+const OUTPOST_INTERACT_CELLS = 6; // OUTPOST_RADIUS(4) + 2
 let selectedOutpostId = null;
 let deathSelectedOutpost = null;
 let chatChannel = 'global';
@@ -3155,9 +3152,17 @@ class WorldScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    const vpW = this.scale.width;
+    const vpH = this.scale.height;
+    this.cameras.main.setViewport(0, 0, vpW, vpH);
     const mz = this.getMinZoom();
     this.cameras.main.setZoom(mz);
     this.cameras.main.centerOn(WORLD_W/2, WORLD_H/2);
+    this.scale.on("resize", (size) => {
+      const w = size?.width ?? this.scale.width;
+      const h = size?.height ?? this.scale.height;
+      this.cameras.main.setViewport(0, 0, w, h);
+    });
 
     this.campGraphics = this.add.graphics().setDepth(10);
     this.cityGraphics = this.add.graphics().setDepth(11);
@@ -5264,12 +5269,16 @@ function initPhaserGame() {
     console.error("[digitalfront] Phaser no cargó — falta vendor/phaser.min.js");
     return null;
   }
+  const vp = (typeof getGameViewportSize === "function" ? getGameViewportSize() : {
+    width: Math.max(1, window.innerWidth),
+    height: Math.max(1, window.innerHeight),
+  });
   const PHASER_RENDERER = DEVICE_PROFILE === 'desktop' ? Phaser.WEBGL : Phaser.AUTO;
   game = new Phaser.Game({
   type:   PHASER_RENDERER,
   parent: 'game',
-  width:  window.innerWidth,
-  height: window.innerHeight,
+  width:  vp.width,
+  height: vp.height,
   backgroundColor: '#050810',
   scene:  WorldScene,
   antialias: DEVICE_PROFILE === 'desktop',
@@ -5281,7 +5290,7 @@ function initPhaserGame() {
   },
   scale: {
     mode:        Phaser.Scale.RESIZE,
-    autoCenter:  Phaser.Scale.CENTER_BOTH,
+    autoCenter:  Phaser.Scale.NO_CENTER,
   },
   input: {
     activePointers: 2,
@@ -5290,17 +5299,25 @@ function initPhaserGame() {
   },
 });
 
+window.__dfGame = game;
+
 if (!window.__dfResizeBound) {
   window.__dfResizeBound = true;
-  window.addEventListener('resize', () => {
-    if (!game) return;
-    game.scale.resize(window.innerWidth, window.innerHeight);
-    const sc = game.scene.getScene("WorldScene");
-    if (sc && sc.cameras?.main) {
-      const mz = sc.getMinZoom();
-      if (sc.cameras.main.zoom < mz) sc.cameras.main.setZoom(mz);
+  const onViewportChange = () => {
+    if (typeof syncGameViewport === "function") syncGameViewport();
+    else if (window.__dfGame?.scale) {
+      const vp = typeof getGameViewportSize === "function"
+        ? getGameViewportSize()
+        : { width: window.innerWidth, height: window.innerHeight };
+      window.__dfGame.scale.resize(vp.width, vp.height);
     }
-  });
+  };
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("orientationchange", () => setTimeout(onViewportChange, 100));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", onViewportChange);
+    window.visualViewport.addEventListener("scroll", onViewportChange);
+  }
 }
   return game;
 }
@@ -5715,6 +5732,8 @@ function startGameAfterAuth() {
     window.showLoginOverlay?.(window.__DF_GAME_BOOT_ERR);
     return;
   }
+  if (typeof syncGameViewport === "function") syncGameViewport();
+  initHudExtras();
   if (DEVICE_PROFILE === 'mobile') {
     document.getElementById('tactical-panel')?.classList.add('collapsed');
     document.body.classList.add('mobile-play');
@@ -5796,7 +5815,7 @@ function updateRefugeChip(insideId, homeId) {
     campBtn.textContent = insideId ? 'Salir refugio' : '🏕 Campamento';
     campBtn.classList.toggle('exit-mode', !!insideId);
   }
-  refreshCampModalActions();
+  refreshCampModalIfOpen();
   if (insideId && !wasInside && !localStorage.getItem('df_refuge_hint')) {
     localStorage.setItem('df_refuge_hint', '1');
     showToast('Estás en el refugio. Pulsa «Salir al campo» para mover tu escuadrón.', 5000);
@@ -5842,6 +5861,20 @@ function renderDeathOutpostList() {
   }
 }
 
+function squadDistanceToOutpost(outpost) {
+  const c = getSquadMacroCentroid();
+  if (!c || !outpost) return Infinity;
+  return Math.hypot(c.x - outpost.x, c.y - outpost.y);
+}
+
+function canReachOutpost(outpost) {
+  return squadDistanceToOutpost(outpost) <= OUTPOST_INTERACT_CELLS;
+}
+
+function isInsideOutpost(outpostId) {
+  return playerInsideOutpost === outpostId;
+}
+
 function resolveCampOutpostId(action) {
   if (action === "exit" && playerInsideOutpost) return playerInsideOutpost;
   return selectedOutpostId || playerInsideOutpost || playerHomeOutpostId;
@@ -5854,6 +5887,12 @@ function campErrMessage(reason) {
     outpost_not_found: "Campamento no encontrado — recarga la página",
     squad_wiped: "Tu batallón fue aniquilado",
     insufficient_gold: "Oro insuficiente",
+    nothing_to_recruit: "No hay reclutas disponibles",
+    invalid_composition: "Composición inválida",
+    no_units: "No hay unidades",
+    not_wiped: "Tu batallón no está aniquilado",
+    no_squad: "Sin escuadrón activo",
+    unknown_action: "Acción desconocida",
   };
   return map[reason] ?? `No se pudo: ${reason ?? "error"}`;
 }
@@ -5873,27 +5912,66 @@ function sendCampAction(action, outpostId, extra) {
   return true;
 }
 
-function refreshCampModalActions() {
+function updateCampModalStatus(outpost) {
+  const statusEl = document.getElementById('camp-modal-status');
+  if (!statusEl || !outpost) return;
+  if (isInsideOutpost(outpost.id)) {
+    statusEl.textContent = 'Dentro del refugio — pulsa «Salir al campo»';
+    return;
+  }
+  const dist = squadDistanceToOutpost(outpost);
+  if (dist <= OUTPOST_INTERACT_CELLS) {
+    statusEl.textContent = 'Al alcance — pulsa Entrar';
+    return;
+  }
+  const need = Math.max(1, Math.ceil(dist - OUTPOST_INTERACT_CELLS));
+  statusEl.textContent = `Demasiado lejos (acercate ${need} celdas)`;
+}
+
+function refreshCampModalActions(outpost) {
   const modal = document.getElementById("camp-modal");
   if (!modal) return;
-  const inside = !!playerInsideOutpost && selectedOutpostId === playerInsideOutpost;
+  const o = outpost ?? outposts.find(x => x.id === selectedOutpostId);
+  if (!o) return;
+  const inside = isInsideOutpost(selectedOutpostId);
+  const reachable = canReachOutpost(o);
+
   modal.querySelectorAll('[data-camp-action="enter"]').forEach(el => {
     el.style.display = playerInsideOutpost ? "none" : "";
+    el.disabled = !reachable;
   });
   modal.querySelectorAll('[data-camp-action="exit"]').forEach(el => {
-    el.style.display = !playerInsideOutpost || inside ? "" : "none";
+    el.style.display = inside ? "" : "none";
+    el.disabled = !inside;
     el.classList.toggle("primary-exit", inside);
   });
+  for (const action of ['heal', 'recruit', 'resupply', 'recompose']) {
+    modal.querySelectorAll(`[data-camp-action="${action}"]`).forEach(el => {
+      el.disabled = !inside;
+    });
+  }
+  modal.querySelectorAll('[data-camp-action="set_home"]').forEach(el => {
+    el.disabled = !(inside || reachable);
+  });
+  const recomposeBtn = document.getElementById('camp-recompose-btn');
+  if (recomposeBtn) recomposeBtn.disabled = !inside;
+}
+
+function refreshCampModalIfOpen() {
+  const modal = document.getElementById('camp-modal');
+  if (!modal?.classList.contains('visible') || !selectedOutpostId) return;
+  const o = outposts.find(x => x.id === selectedOutpostId);
+  if (!o) return;
+  updateCampModalStatus(o);
+  refreshCampModalActions(o);
 }
 
 function openCampModal(outpost) {
-  selectedOutpostId = playerInsideOutpost ?? outpost.id;
+  selectedOutpostId = outpost.id;
   const o = outposts.find(x => x.id === selectedOutpostId) ?? outpost;
   document.getElementById('camp-modal-title').textContent = o.name ?? outpost.name;
-  const inside = playerInsideOutpost === selectedOutpostId;
-  document.getElementById('camp-modal-status').textContent =
-    inside ? 'Dentro del refugio — pulsa «Salir al campo»' : 'Fuera — acércate para entrar';
-  refreshCampModalActions();
+  updateCampModalStatus(o);
+  refreshCampModalActions(o);
   document.getElementById('camp-modal')?.classList.add('visible');
 }
 
@@ -5902,12 +5980,20 @@ function closeCampModal() {
   selectedOutpostId = null;
 }
 
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function appendChatMessage(msg) {
   const box = document.getElementById('chat-messages');
   if (!box) return;
   const line = document.createElement('div');
   line.className = 'chat-line';
-  line.innerHTML = `<span class="chat-name">${msg.captainName}:</span> ${msg.text}`;
+  line.innerHTML = `<span class="chat-name">${escapeHtml(msg.captainName)}:</span> ${escapeHtml(msg.text)}`;
   box.appendChild(line);
   while (box.children.length > 80) box.removeChild(box.firstChild);
   box.scrollTop = box.scrollHeight;
@@ -5916,12 +6002,17 @@ function appendChatMessage(msg) {
 function sendChatMessage() {
   const input = document.getElementById('chat-input');
   if (!input || !input.value.trim()) return;
-  if (!simWs || simWs.readyState !== WebSocket.OPEN) return;
+  if (!simWs || simWs.readyState !== WebSocket.OPEN || !wsAuthenticated) {
+    showToast("Conectando al servidor… inténtalo en un momento", 3000);
+    return;
+  }
   simWs.send(JSON.stringify({ type: 'chat_send', channel: chatChannel, text: input.value.trim() }));
   input.value = '';
 }
 
 function initHudExtras() {
+  if (window.__dfHudExtrasReady) return;
+  window.__dfHudExtrasReady = true;
   const muteBtn = document.getElementById('btn-sfx-mute');
   if (muteBtn && window.DigitalFrontSfx) {
     muteBtn.classList.toggle('muted', DigitalFrontSfx.isMuted());
@@ -5977,7 +6068,11 @@ function initHudExtras() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initHudExtras);
+if (document.readyState !== 'loading') {
+  initHudExtras();
+} else {
+  document.addEventListener('DOMContentLoaded', initHudExtras);
+}
 
 function applySimEvents(events) {
   if (!events) return;
@@ -6275,12 +6370,23 @@ function connectSimWs() {
         resetPlayerRenderSnap();
         if (msg.action === "exit") showToast("¡En el campo! Clic derecho en el mapa para mover.", 3500);
         if (msg.action === 'respawn') hideDeathScreen();
-        closeCampModal();
+        if (['enter', 'exit', 'respawn'].includes(msg.action)) {
+          closeCampModal();
+        } else {
+          refreshCampModalIfOpen();
+        }
         simEpoch++;
         return;
       }
       if (msg.type === "camp_err") {
         showToast(campErrMessage(msg.reason), 3500);
+        return;
+      }
+      if (msg.type === "chat_err") {
+        const chatErrMsg = msg.reason === 'rate_limit' ? 'Esperá 2 segundos entre mensajes'
+          : msg.reason === 'invalid_text' ? 'Mensaje inválido o vacío'
+          : 'No se pudo enviar el mensaje';
+        showToast(chatErrMsg, 3000);
         return;
       }
       if (msg.type === "chat_msg") {
