@@ -1,0 +1,49 @@
+{
+  "name": "digitalfront",
+  "version": "0.1.0",
+  "description": "Digital Front — MMORTS táctico en mapa procedural",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsx scripts/viewer-server.ts",
+    "start": "npm run dev",
+    "start:prod": "node dist/scripts/viewer-server.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:mmo": "vitest run src/mmo src/persist/__tests__ scripts/__tests__/mmoAuth.test.ts scripts/__tests__/simBroadcast.test.ts scripts/__tests__/aoiAnchor.test.ts scripts/__tests__/wsMultiClient.test.ts scripts/__tests__/tacticalOrders.test.ts scripts/__tests__/playerOrders.test.ts src/barbarians/__tests__/barbarianSpawnPlacements.test.ts src/barbarians/__tests__/barbarianPlayerAI.test.ts src/sim/__tests__/barbarianVsPlayer.test.ts src/sim/__tests__/playerVsPlayer.test.ts src/sim/__tests__/unitProgression.test.ts src/sim/__tests__/outpostCamp.test.ts src/sim/__tests__/outpostActions.test.ts src/sim/__tests__/playerEconomy.test.ts src/sim/__tests__/playerSquadUnstuck.test.ts src/mmo/__tests__/chat.test.ts src/tactics/__tests__/terrainTactics.test.ts",
+    "gen": "tsx scripts/generate-world.ts",
+    "viewer": "npm run dev",
+    "viewer:serve": "WORLDGEN_SERVE_ONLY=1 tsx scripts/viewer-server.ts",
+    "lab:pixi": "npm run dev --prefix client",
+    "client:dev": "echo '⚠  Usa npm run dev (juego Phaser en :3333). Lab Pixi: ?lab=1' && npm run lab:pixi",
+    "client:build": "npm run build --prefix client",
+    "app:build": "node scripts/bundle-viewer-www.mjs",
+    "build:web": "node scripts/bundle-vercel.mjs",
+    "app:verify": "node scripts/verify-app-www.mjs",
+    "cap:sync": "npm run app:build && npm run app:verify && npm run cap:sync --prefix client",
+    "cap:android": "npm run cap:sync && npm run cap:open android --prefix client",
+    "cap:run:android": "npm run cap:sync && npm run cap:run android --prefix client",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "loadtest:ws": "tsx scripts/loadtest-ws.ts"
+  },
+  "dependencies": {
+    "delaunator": "^5.0.1",
+    "ioredis": "^5.6.1",
+    "pg": "^8.16.0",
+    "pngjs": "^7.0.0",
+    "sharp": "^0.33.5",
+    "ws": "^8.21.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.4",
+    "@types/pngjs": "^6.0.5",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.0"
+  }
+}

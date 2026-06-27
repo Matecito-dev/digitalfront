@@ -1,0 +1,32 @@
+{
+  "name": "digitalfront-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open",
+    "cap:run": "npx cap run",
+    "cap:android": "npm run cap:sync && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/core": "^7.2.0",
+    "@capacitor/haptics": "^7.0.1",
+    "@capacitor/keyboard": "^7.0.1",
+    "@capacitor/screen-orientation": "^7.0.1",
+    "@capacitor/splash-screen": "^7.0.1",
+    "@capacitor/status-bar": "^7.0.1",
+    "pixi-viewport": "^6.0.3",
+    "pixi.js": "^8.6.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.2.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "paths": {
+      "@shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": [
+    "src/worldgen/**/*",
+    "src/shared/**/*",
+    "src/cities/cityBaseConfig.ts",
+    "src/barbarians/barbarianConfigData.ts",
+    "src/barbarians/barbarianAttackConfigData.ts",
+    "src/barbarians/barbarianRewardConfigData.ts",
+    "src/sim/**/*",
+    "src/mmo/**/*",
+    "src/barbarians/barbarianSim.ts",
+    "src/economy/**/*",
+    "src/bots/**/*",
+    "src/cities/cityFounding.ts",
+    "src/persist/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "**/integration/**",
+    "src/server/**",
+    "src/frontend/**",
+    "node_modules",
+    "dist"
+  ]
+}

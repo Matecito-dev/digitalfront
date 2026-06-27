@@ -1,0 +1,412 @@
+/* Digital Front tactical HUD — gaming overlay styles */
+
+#hud-top {
+  background: linear-gradient(180deg, #0d1117f2 0%, #0d111700 100%);
+  font-size: 12px;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #30363d44;
+}
+
+#hud-top h1 { font-size: 14px; letter-spacing: 0.04em; }
+
+.hud-identity {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 8px; border-radius: 4px;
+  background: #161b22cc; border: 1px solid #30363d;
+}
+
+.hud-gold {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 4px;
+  background: linear-gradient(135deg, #1a1408 0%, #161b22 100%);
+  border: 1px solid #f0883e55;
+  color: #f0883e; font-weight: 700; font-size: 12px;
+  transition: transform 0.15s;
+}
+.hud-gold.pulse { animation: gold-pulse 0.5s ease; }
+@keyframes gold-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); box-shadow: 0 0 12px #f0883e66; }
+}
+
+.hud-refuge-chip {
+  display: none;
+  padding: 2px 8px; border-radius: 4px;
+  background: #23863633; border: 1px solid #238636;
+  color: #3fb950; font-size: 10px; font-weight: 600;
+}
+.hud-refuge-chip.active { display: inline-flex; }
+
+#hud-top .hp-seg { width: 16px; height: 12px; }
+
+.combat-intensity-wrap {
+  display: none;
+  width: 48px; height: 8px;
+  background: #21262d; border-radius: 3px;
+  border: 1px solid #30363d; overflow: hidden;
+  flex-shrink: 0;
+}
+.combat-intensity-wrap.visible { display: block; }
+.combat-intensity-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #f0883e 0%, #f85149 100%);
+  transition: width 0.15s ease-out;
+  border-radius: 2px;
+}
+.combat-intensity-wrap.phase-building .combat-intensity-fill {
+  background: linear-gradient(90deg, #d29922 0%, #f0883e 100%);
+}
+.combat-intensity-wrap.phase-peak .combat-intensity-fill {
+  background: linear-gradient(90deg, #ff6b6b 0%, #ff2222 100%);
+  animation: intensity-peak-pulse 0.45s ease-in-out infinite;
+}
+.combat-intensity-wrap.phase-peak {
+  border-color: #f85149;
+  box-shadow: 0 0 6px #f8514966;
+}
+@keyframes intensity-peak-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+}
+.hp-segments.frenzy-pulse {
+  animation: frenzy-hp-pulse 0.5s ease-in-out 2;
+}
+@keyframes frenzy-hp-pulse {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 4px #f85149); }
+}
+
+#combat-alert-inline.active {
+  display: inline-flex !important;
+  animation: combat-pulse 1s infinite;
+  color: #f85149; border-color: #f8514966;
+}
+#combat-alert.engaged {
+  background: linear-gradient(135deg, #3d1212ee 0%, #4a1818ee 100%);
+  border-color: #ff6b6b;
+  color: #ffd4d4;
+  font-size: 12px;
+  padding: 10px 18px;
+  max-width: min(92vw, 420px);
+  text-align: center;
+  line-height: 1.35;
+}
+@keyframes combat-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+#tactical-panel {
+  background: #0d1117ee;
+  border: 1px solid #30363d;
+  font-size: 12px;
+}
+
+#hud-bot { left: 300px; }
+
+#chat-panel {
+  position: fixed; bottom: 28px; left: 10px; z-index: 25;
+  width: 280px; height: 180px;
+  display: none; flex-direction: column;
+  background: #0d1117ee; border: 1px solid #30363d;
+  border-radius: 6px; overflow: hidden; font-size: 11px;
+}
+#chat-panel.visible { display: flex; }
+#chat-tabs { display: flex; border-bottom: 1px solid #30363d; }
+#chat-tabs button {
+  flex: 1; padding: 4px 0; font-size: 10px;
+  background: transparent; border: none; color: #8b949e; cursor: pointer;
+}
+#chat-tabs button.active {
+  background: #161b22; color: #58a6ff;
+  border-bottom: 2px solid #58a6ff;
+}
+#chat-messages {
+  flex: 1; overflow-y: auto; padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.chat-line { line-height: 1.35; word-break: break-word; }
+.chat-line .chat-name { color: #58a6ff; font-weight: 600; }
+#chat-input-row {
+  display: flex; gap: 4px; padding: 4px 6px; border-top: 1px solid #30363d;
+}
+#chat-input {
+  flex: 1; background: #161b22; border: 1px solid #30363d;
+  color: #e6edf3; border-radius: 3px; padding: 3px 6px; font-size: 11px;
+}
+
+#death-screen {
+  position: fixed; inset: 0; z-index: 50;
+  display: none; align-items: center; justify-content: center;
+  background: #000000cc;
+}
+#death-screen.visible { display: flex; }
+#death-box {
+  max-width: 420px; width: 90%;
+  background: #0d1117; border: 1px solid #f8514966;
+  border-radius: 8px; padding: 24px 28px; text-align: center;
+}
+#death-box h2 { color: #f85149; font-size: 18px; margin-bottom: 8px; }
+#death-outpost-list {
+  text-align: left; max-height: 140px; overflow-y: auto;
+  margin: 12px 0; border: 1px solid #30363d; border-radius: 4px;
+}
+.death-outpost-opt {
+  padding: 8px 12px; cursor: pointer; font-size: 12px;
+}
+.death-outpost-opt.selected { background: #23863633; }
+
+#camp-modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 320; display: none; width: 320px;
+  background: #0d1117ee; border: 1px solid #58a6ff55;
+  border-radius: 8px; padding: 16px;
+  pointer-events: auto;
+}
+#camp-modal.visible { display: block; }
+#camp-modal-close {
+  position: absolute; top: 8px; right: 10px;
+  min-width: 44px; min-height: 44px; font-size: 18px;
+}
+.camp-actions button.primary-exit {
+  background: #238636;
+  border-color: #3fb950;
+  font-weight: 700;
+}
+.camp-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.camp-actions button { flex: 1 1 45%; font-size: 10px; }
+.tactical-actions button.warn {
+  border-color: #f0883e;
+  color: #f0883e;
+  animation: combat-pulse 1.2s infinite;
+}
+
+/* Refugio spawn banner */
+#refuge-banner {
+  display: none;
+  position: fixed;
+  top: max(44px, calc(38px + env(safe-area-inset-top)));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 315;
+  pointer-events: auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #161b22ee;
+  border: 1px solid #238636;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #3fb950;
+  box-shadow: 0 4px 16px #00000088;
+}
+#refuge-banner.visible { display: flex; }
+#refuge-banner button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+/* Settings overlay (Capacitor / APK) */
+#settings-overlay {
+  position: fixed; inset: 0; z-index: 310;
+  display: none; align-items: center; justify-content: center;
+  background: #050810ee; backdrop-filter: blur(6px);
+}
+#settings-overlay.visible { display: flex; }
+#settings-box {
+  background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+  padding: 22px 24px; width: min(400px, 92vw);
+  box-shadow: 0 12px 40px #000000aa;
+}
+#settings-box h2 { font-size: 16px; color: #58a6ff; margin-bottom: 8px; }
+#settings-box p { font-size: 11px; color: #8b949e; line-height: 1.5; margin-bottom: 12px; }
+#settings-box label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+#settings-server-url {
+  width: 100%; padding: 10px 12px; font-size: 13px; margin-bottom: 8px;
+}
+#settings-error { min-height: 18px; font-size: 11px; color: #f85149; margin-bottom: 8px; }
+#settings-status { min-height: 18px; font-size: 11px; color: #3fb950; margin-bottom: 8px; }
+#settings-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#settings-actions button {
+  flex: 1; min-height: 44px; padding: 10px 14px; font-size: 13px;
+}
+
+/* ── Mobile / landscape táctico ── */
+body.mobile-play {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+body.mobile-play #game canvas {
+  touch-action: none;
+}
+body.mobile-play #dev-seed { display: none !important; }
+body.mobile-play #status { display: none; }
+
+body.mobile-play #hud-top {
+  flex-wrap: nowrap;
+  padding: 4px 8px;
+  padding-top: max(4px, env(safe-area-inset-top));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+  font-size: 11px;
+  gap: 6px;
+}
+body.mobile-play #hud-top h1 { font-size: 13px; }
+body.mobile-play #hud-top .hud-battalion { margin-left: 0; flex-shrink: 0; }
+body.mobile-play #btn-follow-squad { display: none; }
+body.mobile-play #hud-top button,
+body.mobile-play #mobile-bar button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* Bottom bar móvil */
+#mobile-bar {
+  display: none;
+}
+body.mobile-play #mobile-bar {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+  background: linear-gradient(0deg, #0d1117f2 0%, #0d111700 100%);
+  border-top: 1px solid #30363d44;
+  font-size: 11px;
+  pointer-events: none;
+}
+body.mobile-play #mobile-bar > * { pointer-events: auto; }
+body.mobile-play #mobile-bar .mobile-toggle.active {
+  background: #1f6feb;
+  border-color: #58a6ff;
+}
+body.mobile-play #mobile-camp-btn.exit-mode {
+  background: #238636;
+  border-color: #3fb950;
+}
+
+body.mobile-play #hud-bot {
+  display: none;
+}
+
+/* Drawers colapsables */
+body.mobile-play #chat-panel {
+  bottom: max(52px, calc(48px + env(safe-area-inset-bottom)));
+  left: max(6px, env(safe-area-inset-left));
+  width: min(280px, 55vw);
+  height: 140px;
+  transform: translateX(-110%);
+  transition: transform 0.2s ease;
+}
+body.mobile-play #chat-panel.drawer-open {
+  transform: translateX(0);
+}
+body.mobile-play #chat-panel.visible:not(.drawer-open) {
+  display: none;
+}
+
+body.mobile-play #tactical-panel {
+  top: auto;
+  bottom: max(52px, calc(48px + env(safe-area-inset-bottom)));
+  right: max(6px, env(safe-area-inset-right));
+  max-height: 50vh;
+  max-width: min(180px, 42vw);
+  font-size: 11px;
+  transform: translateX(110%);
+  transition: transform 0.2s ease;
+}
+body.mobile-play #tactical-panel.drawer-open {
+  transform: translateX(0);
+}
+body.mobile-play #tactical-panel.collapsed:not(.drawer-open) {
+  display: none;
+}
+body.mobile-play #tactical-panel.drawer-open.collapsed #tactical-body {
+  display: none;
+}
+
+body.mobile-play #minimap-wrap {
+  display: none;
+  bottom: max(52px, calc(48px + env(safe-area-inset-bottom)));
+  right: max(6px, env(safe-area-inset-right));
+  width: 130px;
+  height: 96px;
+}
+body.mobile-play #minimap-wrap.mm-visible {
+  display: block;
+}
+
+body.mobile-play #barb-compass {
+  bottom: max(160px, calc(154px + env(safe-area-inset-bottom)));
+  right: max(6px, env(safe-area-inset-right));
+}
+
+body.mobile-play #login-box,
+body.mobile-play #settings-box {
+  width: min(340px, 88vw);
+}
+
+/* Camp modal bottom sheet en móvil */
+body.mobile-play #camp-modal {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: none;
+  width: 100%;
+  max-width: none;
+  max-height: 75vh;
+  overflow-y: auto;
+  touch-action: pan-y;
+  border-radius: 12px 12px 0 0;
+  z-index: 320;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+body.mobile-play #camp-modal .camp-actions button {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+body.mobile-play #login-submit,
+body.mobile-play #settings-actions button {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  body.mobile-play::before {
+    content: "Gira el dispositivo a horizontal para jugar";
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    background: #050810f5;
+    color: #58a6ff;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  body.mobile-play #hud-top .hp-seg { width: 12px; height: 9px; }
+  body.mobile-play #chat-panel.drawer-open { height: 110px; }
+}
