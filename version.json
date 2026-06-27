@@ -1,8 +1,8 @@
 {
-  "version": "0.0.7",
-  "title": "Pantalla de comandante",
+  "version": "0.0.8",
+  "title": "Sesión visible tras OAuth",
   "changelog": [
-    "Con sesión iniciada ves tu usuario, foto de GitHub/X, entrar al mundo o cerrar sesión.",
+    "Tras login GitHub/X ya ves tu pantalla de comandante sin pantalla en blanco.",
     "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",

@@ -45,6 +45,7 @@ const dfOAuth = {
 const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
+  'session-boot.js',
   'version.js',
   'terrain-tactics.js',
   'tactical-orders.js',
@@ -78,6 +79,7 @@ html = html
   .replace(/src="config\.js"/g, 'src="./config.js"')
   .replace(/src="branding\.js"/g, 'src="./branding.js"')
   .replace(/src="auth-oauth\.js"/g, 'src="./auth-oauth.js"')
+  .replace(/src="session-boot\.js"/g, 'src="./session-boot.js"')
   .replace(/src="terrain-tactics\.js"/g, 'src="./terrain-tactics.js"')
   .replace(/src="tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="capacitor-init\.js"/g, 'src="./capacitor-init.js"')

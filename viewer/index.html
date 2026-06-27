@@ -44,6 +44,20 @@
     location.replace("/");
   })();
 })();
+(function () {
+  var path = location.pathname.replace(/\/$/, "") || "/";
+  if (path !== "/") return;
+  var raw = sessionStorage.getItem("df_oauth_pending");
+  if (!raw) return;
+  try {
+    var pending = JSON.parse(raw);
+    if (pending && pending.token && pending.profile) {
+      localStorage.setItem("df_session", JSON.stringify({ token: pending.token, profile: pending.profile }));
+      sessionStorage.setItem("df_oauth_fresh", "1");
+      document.documentElement.classList.add("df-await-session-ui");
+    }
+  } catch (e) { /* ignore */ }
+})();
 </script>
 <link rel="stylesheet" href="hud.css">
 <style>
@@ -578,6 +592,17 @@ body.mobile-play #connection-dot { display: inline-block; }
 #login-oauth .oauth-x:hover { background: #161616; }
 #login-oauth .oauth-loading { opacity: 0.65; pointer-events: none; }
 #login-auth.hidden, #login-session.hidden { display: none !important; }
+html.df-await-session-ui #login-overlay { display: flex !important; }
+html.df-await-session-ui #login-auth { display: none !important; }
+html.df-await-session-ui #login-session { display: block !important; }
+#login-boot-status {
+  display: none;
+  font-size: 11px;
+  color: #8b949e;
+  text-align: center;
+  padding: 8px 0 0;
+}
+html.df-await-session-ui #login-boot-status { display: block; }
 #login-session-profile {
   display: flex;
   align-items: center;
@@ -743,10 +768,12 @@ body.mobile-play #connection-dot { display: inline-block; }
           <button type="button" id="login-enter-world">Entrar al mundo</button>
           <button type="button" class="sec" id="login-logout">Cerrar sesión</button>
         </div>
+        <p id="login-boot-status">Restaurando tu sesión…</p>
       </div>
     </div>
   </div>
 </div>
+<script src="session-boot.js"></script>
 
 <div id="connection-banner">Reconectando…</div>
 
@@ -6708,12 +6735,24 @@ document.getElementById('update-banner-dismiss')?.addEventListener('click', () =
   dismissUpdateBanner();
 });
 
+function ensureLoginUiVisible() {
+  const overlay = document.getElementById("login-overlay");
+  const auth = document.getElementById("login-auth");
+  const session = document.getElementById("login-session");
+  overlay?.classList.remove("hidden");
+  if (auth?.classList.contains("hidden") && session?.classList.contains("hidden")) {
+    auth.classList.remove("hidden");
+  }
+}
+
 function showLoginOverlay(message) {
   const overlay = document.getElementById("login-overlay");
   const err = document.getElementById("login-error");
   document.getElementById("login-auth")?.classList.remove("hidden");
   document.getElementById("login-session")?.classList.add("hidden");
   if (overlay) overlay.classList.remove("hidden");
+  document.documentElement.classList.remove("df-await-session-ui");
+  document.getElementById("login-boot-status")?.style && (document.getElementById("login-boot-status").style.display = "none");
   if (err) err.textContent = message ?? "";
   const status = document.getElementById("status");
   if (status) status.textContent = "Identifícate para entrar al batallón";
@@ -6757,6 +6796,9 @@ function showSessionPanel(profile) {
   document.getElementById("login-auth")?.classList.add("hidden");
   document.getElementById("login-session")?.classList.remove("hidden");
   if (overlay) overlay.classList.remove("hidden");
+  document.documentElement.classList.remove("df-await-session-ui");
+  const boot = document.getElementById("login-boot-status");
+  if (boot) boot.style.display = "none";
   const username = profile?.username ?? profile?.captainName ?? "Comandante";
   const usernameEl = document.getElementById("login-session-username");
   const providerEl = document.getElementById("login-session-provider");
@@ -6812,13 +6854,27 @@ async function tryRestoreDfSession() {
     }
     if (restored?.token && restored?.profile) {
       saveDfSession(restored.token, restored.profile);
-      showSessionPanel(restored.profile);
+      if (!window.__DF_EARLY_SESSION_UI) showSessionPanel(restored.profile);
+      else {
+        dfAuthToken = restored.token;
+        dfProfile = restored.profile;
+        updateCaptainHud();
+      }
       return;
     }
     showLoginOverlay();
   } catch {
     showLoginOverlay("No se pudo conectar al servidor. ¿Está levantado?");
+  } finally {
+    ensureLoginUiVisible();
   }
+}
+
+let dfAuthBootDone = false;
+function bootAuthOnce() {
+  if (dfAuthBootDone) return;
+  dfAuthBootDone = true;
+  void tryRestoreDfSession();
 }
 
 async function submitGuestLogin() {
@@ -7635,7 +7691,7 @@ document.getElementById("inp-seed")?.addEventListener("input", e => {
 if (window.DfAuth?.isOAuthCallbackPath?.()) {
   /* OAuth en curso desde el script del head */
 } else {
-  window.addEventListener('load', () => tryRestoreDfSession());
+  bootAuthOnce();
 }
 </script>
 </body>
