@@ -243,6 +243,8 @@ body.mobile-play {
 }
 body.mobile-play #game canvas {
   touch-action: none;
+  width: 100% !important;
+  height: 100% !important;
 }
 body.mobile-play #dev-seed { display: none !important; }
 body.mobile-play #status { display: none; }
