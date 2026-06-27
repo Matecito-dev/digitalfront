@@ -231,8 +231,12 @@
   }
 
   async function validateDfSession(token) {
+    const ctrl = typeof AbortSignal !== "undefined" && AbortSignal.timeout
+      ? AbortSignal.timeout(8000)
+      : undefined;
     const r = await fetch(getApiUrl("/api/profile/me"), {
       headers: { Authorization: `Bearer ${token}` },
+      signal: ctrl,
     });
     if (!r.ok) return null;
     return r.json();
@@ -321,7 +325,9 @@
           return { token: stored.token, profile };
         }
         clearDfSession();
-      } catch { /* fall through to guest key */ }
+      } catch {
+        if (stored.profile) return { token: stored.token, profile: stored.profile };
+      }
     }
 
     const guestKey = loadGuestKey();

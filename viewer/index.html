@@ -1016,6 +1016,14 @@ function apiUrl(path) {
 }
 window.apiUrl = apiUrl;
 
+window.__DF_ENTER_WORLD_QUEUED = false;
+window.startGameAfterAuth = function dfEnterWorldEarly() {
+  if (typeof window.__dfStartGameAfterAuth === "function") {
+    return window.__dfStartGameAfterAuth();
+  }
+  window.__DF_ENTER_WORLD_QUEUED = true;
+};
+
 function wsUrl() {
   const base = getApiBase();
   const wsPath = window.DF_CONFIG?.wsPath ?? "/api/sim/ws";
@@ -6874,6 +6882,9 @@ let dfAuthBootDone = false;
 function bootAuthOnce() {
   if (dfAuthBootDone) return;
   dfAuthBootDone = true;
+  const stored = window.DfAuth?.loadDfSession?.();
+  if (stored?.token && stored?.profile) saveDfSession(stored.token, stored.profile);
+  window.__DF_AUTH_READY = true;
   void tryRestoreDfSession();
 }
 
@@ -6940,8 +6951,15 @@ function startGameAfterAuth() {
   startSimTransport();
   setTimeout(generate, 300);
 }
-window.startGameAfterAuth = startGameAfterAuth;
+window.__dfStartGameAfterAuth = startGameAfterAuth;
+window.startGameAfterAuth = function dfEnterWorldEntry() {
+  return window.__dfStartGameAfterAuth();
+};
 window.logoutSession = logoutSession;
+if (window.__DF_ENTER_WORLD_QUEUED) {
+  window.__DF_ENTER_WORLD_QUEUED = false;
+  window.startGameAfterAuth();
+}
 document.getElementById("login-enter-world")?.addEventListener("click", (e) => {
   e.preventDefault();
   if (window.DfEnterWorld) void window.DfEnterWorld();

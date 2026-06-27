@@ -112,9 +112,19 @@
   async function tryEnterWorld() {
     showEnterLoading("Cargando motor del juego…");
     try {
-      await waitUntil(() => typeof window.startGameAfterAuth === "function", 90000);
-      await waitUntil(() => window.__DF_AUTH_READY === true, 90000);
+      if (typeof window.startGameAfterAuth !== "function") {
+        await waitUntil(() => typeof window.startGameAfterAuth === "function", 15000);
+      }
       window.startGameAfterAuth();
+      if (window.__DF_ENTER_WORLD_QUEUED) {
+        await waitUntil(() => typeof window.__dfStartGameAfterAuth === "function", 120000);
+        window.__DF_ENTER_WORLD_QUEUED = false;
+        window.__dfStartGameAfterAuth();
+      }
+      await waitUntil(
+        () => document.getElementById("login-overlay")?.classList.contains("hidden"),
+        120000,
+      );
       const boot = document.getElementById("login-boot-status");
       if (boot) boot.style.display = "none";
     } catch {

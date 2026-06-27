@@ -1,8 +1,8 @@
 {
-  "version": "0.0.11",
-  "title": "Botón Entrar al mundo",
+  "version": "0.0.12",
+  "title": "Entrar al mundo fiable",
   "changelog": [
-    "Corregido «Entrar al mundo»: responde al clic aunque Phaser siga cargando.",
+    "«Entrar al mundo» ya no queda colgado en Cargando motor del juego.",
     "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",
