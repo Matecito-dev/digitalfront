@@ -600,20 +600,25 @@ html.df-await-session-ui #login-boot-status { display: block; }
   flex-shrink: 0;
   position: relative;
 }
-#login-session-avatar {
+#login-session-avatar,
+#login-session-avatar-fallback {
+  position: absolute;
+  inset: 0;
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  object-fit: cover;
   border: 2px solid #30363d;
+  box-sizing: border-box;
+}
+#login-session-avatar {
+  object-fit: cover;
   background: #21262d;
-  display: block;
+}
+#login-session-avatar[hidden],
+#login-session-avatar-fallback[hidden] {
+  display: none !important;
 }
 #login-session-avatar-fallback {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid #30363d;
   background: linear-gradient(135deg, #1f6feb 0%, #21262d 100%);
   display: flex;
   align-items: center;
@@ -6750,25 +6755,28 @@ function paintSessionAvatar(profile) {
   const fallback = document.getElementById("login-session-avatar-fallback");
   const username = profile?.username ?? profile?.captainName ?? "?";
   const initial = username.trim().charAt(0).toUpperCase() || "?";
-  if (profile?.avatarUrl && img) {
-    img.src = profile.avatarUrl;
-    img.alt = username;
-    img.hidden = false;
+  if (!img || !fallback) return;
+  fallback.textContent = initial;
+  const showFallback = () => {
+    img.hidden = true;
+    img.removeAttribute("src");
+    fallback.hidden = false;
+  };
+  if (profile?.avatarUrl) {
+    img.onload = () => { fallback.hidden = true; img.hidden = false; };
+    img.onerror = showFallback;
     img.referrerPolicy = "no-referrer";
-    img.onerror = () => {
-      img.hidden = true;
-      if (fallback) {
-        fallback.textContent = initial;
-        fallback.hidden = false;
-      }
-    };
-    if (fallback) fallback.hidden = true;
-  } else {
-    if (img) img.hidden = true;
-    if (fallback) {
-      fallback.textContent = initial;
-      fallback.hidden = false;
+    img.alt = username;
+    img.src = profile.avatarUrl;
+    if (img.complete && img.naturalWidth > 0) {
+      fallback.hidden = true;
+      img.hidden = false;
+    } else {
+      img.hidden = false;
+      fallback.hidden = true;
     }
+  } else {
+    showFallback();
   }
 }
 

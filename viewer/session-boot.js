@@ -31,21 +31,27 @@
     const username = profile?.username ?? profile?.captainName ?? "?";
     const initial = username.trim().charAt(0).toUpperCase() || "?";
     if (!img || !fallback) return;
-    if (profile?.avatarUrl) {
-      img.src = profile.avatarUrl;
-      img.alt = username;
-      img.hidden = false;
-      img.referrerPolicy = "no-referrer";
-      img.onerror = () => {
-        img.hidden = true;
-        fallback.textContent = initial;
-        fallback.hidden = false;
-      };
-      fallback.hidden = true;
-    } else {
+    fallback.textContent = initial;
+    const showFallback = () => {
       img.hidden = true;
-      fallback.textContent = initial;
+      img.removeAttribute("src");
       fallback.hidden = false;
+    };
+    if (profile?.avatarUrl) {
+      img.onload = () => { fallback.hidden = true; img.hidden = false; };
+      img.onerror = showFallback;
+      img.referrerPolicy = "no-referrer";
+      img.alt = username;
+      img.src = profile.avatarUrl;
+      if (img.complete && img.naturalWidth > 0) {
+        fallback.hidden = true;
+        img.hidden = false;
+      } else {
+        img.hidden = false;
+        fallback.hidden = true;
+      }
+    } else {
+      showFallback();
     }
   }
 
