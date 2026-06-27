@@ -14,6 +14,8 @@ export interface PlayerProfile {
   id: string;
   username: string;
   captainName: string;
+  authProvider: string;
+  avatarUrl: string | null;
   createdAt: Date;
   lastSeenAt: Date;
   stats: PlayerProfileStats;
@@ -31,6 +33,10 @@ export interface ProfileRow {
   composite_score: number;
   created_at: Date;
   last_seen_at: Date;
+  auth_provider?: string;
+  oauth_subject?: string | null;
+  guest_key?: string | null;
+  avatar_url?: string | null;
 }
 
 export type UsernameValidationError =
@@ -111,6 +117,8 @@ export function profileFromRow(row: ProfileRow): PlayerProfile {
     id: row.id,
     username: row.username,
     captainName: row.captain_name,
+    authProvider: row.auth_provider ?? "guest",
+    avatarUrl: row.avatar_url ?? null,
     createdAt: row.created_at,
     lastSeenAt: row.last_seen_at,
     stats: {
@@ -125,6 +133,8 @@ export function profileToJson(profile: PlayerProfile) {
     id: profile.id,
     username: profile.username,
     captainName: profile.captainName,
+    authProvider: profile.authProvider,
+    avatarUrl: profile.avatarUrl,
     createdAt: profile.createdAt.toISOString(),
     lastSeenAt: profile.lastSeenAt.toISOString(),
     stats: profile.stats,

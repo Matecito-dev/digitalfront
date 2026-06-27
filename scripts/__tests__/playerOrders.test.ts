@@ -6,7 +6,7 @@ const bounds = { cols: 512, rows: 384 };
 describe("parsePlayerOrderMessage", () => {
   it("parses move order with clamped coords", () => {
     const r = parsePlayerOrderMessage({ type: "order", order: "move", x: 100, y: 50 }, bounds);
-    expect(r).toEqual({ order: "move", x: 100, y: 50, groupId: null, targetProfileId: null, appendWaypoint: false });
+    expect(r).toEqual({ order: "move", x: 100, y: 50, groupId: null, targetProfileId: null, appendWaypoint: false, unitIds: null });
   });
 
   it("parses hold order", () => {
@@ -21,7 +21,7 @@ describe("parsePlayerOrderMessage", () => {
       { type: "order", order: "attack", x: 1, y: 2, groupId: "g42" },
       bounds,
     );
-    expect(r).toEqual({ order: "attack", x: 1, y: 2, groupId: "g42", targetProfileId: null, appendWaypoint: false });
+    expect(r).toEqual({ order: "attack", x: 1, y: 2, groupId: "g42", targetProfileId: null, appendWaypoint: false, unitIds: null });
   });
 
   it("parses attack_pvp with targetProfileId", () => {
@@ -30,7 +30,7 @@ describe("parsePlayerOrderMessage", () => {
       bounds,
     );
     expect(r).toEqual({
-      order: "attack_pvp", x: 10, y: 20, groupId: null, targetProfileId: "uuid-1", appendWaypoint: false,
+      order: "attack_pvp", x: 10, y: 20, groupId: null, targetProfileId: "uuid-1", appendWaypoint: false, unitIds: null,
     });
   });
 
@@ -56,6 +56,14 @@ describe("parsePlayerOrderMessage", () => {
     const r = parsePlayerOrderMessage({ type: "order", order: "move", x: 9999, y: -5 }, bounds);
     expect(r?.x).toBeLessThan(bounds.cols);
     expect(r?.y).toBe(0);
+  });
+
+  it("parses optional unitIds for partial squad orders", () => {
+    const r = parsePlayerOrderMessage(
+      { type: "order", order: "move", x: 1, y: 2, unitIds: ["s1", "f1"] },
+      bounds,
+    );
+    expect(r?.unitIds).toEqual(["s1", "f1"]);
   });
 });
 

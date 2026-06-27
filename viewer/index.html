@@ -18,6 +18,7 @@
 <meta name="twitter:image" content="./og-cover.png">
 <script src="config.js"></script>
 <script src="branding.js"></script>
+<script src="auth-oauth.js"></script>
 <link rel="stylesheet" href="hud.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -92,11 +93,17 @@ button.sec:hover { background: #30363d; }
 }
 .hp-segments { display: flex; gap: 2px; align-items: stretch; }
 .hp-seg {
-  width: 14px; height: 10px; background: #21262d; border-radius: 2px;
+  width: 14px; height: 14px; background: #21262d; border-radius: 2px;
   overflow: hidden; border: 1px solid #30363d;
+  display: flex; flex-direction: column; justify-content: flex-end;
 }
 .hp-seg.dead { opacity: 0.35; }
-.hp-seg-fill { height: 100%; transition: width .2s; }
+.hp-seg-fill { height: 55%; transition: height .2s; flex-shrink: 0; }
+.armor-seg-fill {
+  height: 35%; background: linear-gradient(180deg, #8b949e 0%, #484f58 100%);
+  transition: height .2s; flex-shrink: 0; border-top: 1px solid #30363d;
+}
+.armor-seg-fill.empty { opacity: 0.25; }
 .hp-seg.soldier .hp-seg-fill { background: #3498db; }
 .hp-seg.sniper .hp-seg-fill { background: #e74c3c; }
 .posture-chip {
@@ -323,7 +330,13 @@ button.sec:hover { background: #30363d; }
 #login-overlay {
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
-  background: #050810ee; backdrop-filter: blur(6px);
+  background:
+    linear-gradient(180deg, #050810cc 0%, #050810ee 45%, #0d1117f5 100%),
+    image-set(url('./assets/dgbg.webp') type('image/webp'), url('./assets/dgbg.jpg') type('image/jpeg')) center/cover no-repeat,
+    url('./assets/dgbg.jpg') center/cover no-repeat,
+    url('./assets/menu-bg.jpg') center/cover no-repeat;
+  background-color: #050810;
+  backdrop-filter: blur(6px);
   pointer-events: auto;
 }
 #login-overlay.hidden { display: none; }
@@ -413,6 +426,24 @@ body.mobile-play #connection-dot { display: inline-block; }
 #login-divider {
   text-align: center; font-size: 9px; color: #6e7681; margin: 10px 0;
 }
+#login-logo {
+  display: block; max-width: 180px; height: auto; margin: 0 auto 10px;
+}
+#login-banner {
+  display: block; width: 100%; max-height: 72px; object-fit: contain;
+  margin-bottom: 12px; border-radius: 6px;
+}
+#login-oauth {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
+}
+#login-oauth button {
+  width: 100%; padding: 9px 12px; font-size: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+#login-oauth .oauth-github { background: #24292f; border: 1px solid #30363d; }
+#login-oauth .oauth-github:hover { background: #30363d; }
+#login-oauth .oauth-x { background: #000; border: 1px solid #30363d; }
+#login-oauth .oauth-x:hover { background: #161616; }
 #ranking-share { width: 100%; margin-top: 4px; font-size: 9px; }
 </style>
 </head>
@@ -438,8 +469,20 @@ body.mobile-play #connection-dot { display: inline-block; }
 
 <div id="login-overlay">
   <div id="login-box">
+    <picture id="login-logo-wrap">
+      <source srcset="./assets/dglogo.webp" type="image/webp">
+      <img id="login-logo" src="./assets/dglogo.png" alt="Digital Front" onerror="this.style.display='none'">
+    </picture>
+    <picture id="login-banner-wrap">
+      <source srcset="./assets/dgbanner.webp" type="image/webp">
+      <img id="login-banner" src="./assets/dgbanner.png" alt="" onerror="this.style.display='none'">
+    </picture>
     <h2>⚔ Digital Front</h2>
     <p id="login-tagline">MMORTS táctico en mapa procedural — explora, combate bárbaros, PvP en tiempo real.</p>
+    <div id="login-oauth">
+      <button type="button" class="oauth-github" id="login-github">Continuar con GitHub</button>
+      <button type="button" class="oauth-x" id="login-x">Continuar con X</button>
+    </div>
     <div id="login-links">
       <a href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
       <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
@@ -469,7 +512,7 @@ body.mobile-play #connection-dot { display: inline-block; }
   <span id="hud-gold" class="hud-gold" title="Oro del batallón">🪙 <span id="gold-amt">0</span></span>
   <span id="hud-refuge" class="hud-refuge-chip">🏕 En refugio</span>
   <div id="hud-battalion" class="hud-battalion">
-    <div id="hud-hp-segments" class="hp-segments" title="HP del batallón"></div>
+    <div id="hud-hp-segments" class="hp-segments" title="HP (arriba) y armadura (barra gris abajo)"></div>
     <div id="hud-combat-intensity" class="combat-intensity-wrap" title="Intensidad de combate" aria-hidden="true">
       <div id="hud-combat-intensity-fill" class="combat-intensity-fill"></div>
     </div>
@@ -672,6 +715,7 @@ body.mobile-play #connection-dot { display: inline-block; }
 <!-- Phaser 3 -->
 <script src="vendor/phaser.min.js"></script>
 <script src="audio/sfx.js"></script>
+<script src="audio/bgm.js"></script>
 <script src="terrain-tactics.js"></script>
 <script src="tactical-orders.js"></script>
 <script src="capacitor-init.js"></script>
@@ -693,6 +737,7 @@ function apiUrl(path) {
   const p = path.startsWith("/") ? path : `/${path}`;
   return base ? base + p : p;
 }
+window.apiUrl = apiUrl;
 
 function wsUrl() {
   const base = getApiBase();
@@ -1732,6 +1777,19 @@ function updateBarbCompass() {
   el.classList.add('visible');
 }
 
+function armorPctFromLevel(level) {
+  const lv = Math.max(1, Math.min(10, level ?? 1));
+  return Math.round((lv - 1) * 2);
+}
+
+function resetPlayerRenderSnap() {
+  playerRender.clear();
+  for (const u of units) {
+    if (!u.player || u.hp <= 0) continue;
+    playerRender.set(u.id, { x: u.x, y: u.y, tx: u.tx, ty: u.ty, vx: 0, vy: 0 });
+  }
+}
+
 function updateBattalionHpSegments() {
   const el = document.getElementById('hud-hp-segments');
   if (!el) return;
@@ -1739,9 +1797,11 @@ function updateBattalionHpSegments() {
   el.innerHTML = squad.map(u => {
     const max = u.maxHp ?? unitMaxHp(u.type);
     const pct = u.hp <= 0 ? 0 : Math.max(0, Math.min(100, (u.hp / max) * 100));
+    const arm = armorPctFromLevel(u.level);
     const col = u.type === 'sniper' ? 'sniper' : 'soldier';
     const dead = u.hp <= 0 ? ' dead' : '';
-    return `<div class="hp-seg ${col}${dead}" title="${u.name} Nv.${u.level ?? 1}: ${Math.max(0, u.hp)}/${max}"><div class="hp-seg-fill" style="width:${pct}%"></div></div>`;
+    const armCls = arm > 0 ? '' : ' empty';
+    return `<div class="hp-seg ${col}${dead}" title="${u.name} Nv.${u.level ?? 1} · HP ${Math.max(0, u.hp)}/${max} · Arm ${arm}%"><div class="hp-seg-fill" style="height:${pct}%"></div><div class="armor-seg-fill${armCls}" style="height:${Math.max(8, arm)}%"></div></div>`;
   }).join('');
 }
 
@@ -1809,6 +1869,10 @@ function isBarbarianGroupVisible(group) {
 }
 
 function handleTerrainOrder(wx, wy, shift = false) {
+  if (playerInsideOutpost) {
+    showToast('Estás en refugio — pulsa «Salir al campo» primero', 3000);
+    return;
+  }
   const macro = worldToMacro(wx, wy);
   const sel = getSelected();
   if (!sel.length) return;
@@ -3112,6 +3176,11 @@ function sendPlayerOrder(order, x, y, groupId = null, targetProfileId = null) {
   const payload = { type: 'order', order, x, y };
   if (order === 'attack' && groupId) payload.groupId = groupId;
   if (order === 'attack_pvp' && targetProfileId) payload.targetProfileId = targetProfileId;
+  const sel = getSelected();
+  const alive = units.filter(u => u.player && u.hp > 0);
+  if (sel.length > 0 && sel.length < alive.length) {
+    payload.unitIds = sel.map(u => u.id);
+  }
   simWs.send(JSON.stringify(payload));
   window.DigitalFrontSfx?.play('ui');
 }
@@ -3182,13 +3251,14 @@ function mergePlayerSquadFromServer(squad, opts = {}) {
       if (su.suppressedUntil != null) u.suppressedUntil = su.suppressedUntil;
     }
   }
-  const orderMap = { move: UnitOrder.MOVE, hold: UnitOrder.HOLD, attack: UnitOrder.ATTACK_MOVE, attack_pvp: UnitOrder.ATTACK_MOVE };
-  const mappedOrder = orderMap[squad.order] ?? UnitOrder.MOVE;
-  for (const u of units) {
-    if (!u.player) continue;
-    u.unitOrder = mappedOrder;
+  const orderMap = { move: UnitOrder.MOVE, hold: UnitOrder.HOLD, attack: UnitOrder.ATTACK_MOVE, attack_pvp: UnitOrder.ATTACK_MOVE, fire_hold: UnitOrder.FIRE_HOLD, stealth: UnitOrder.STEALTH, attack_move: UnitOrder.ATTACK_MOVE };
+  const squadDefault = orderMap[squad.order] ?? orderMap[squad.unitOrder] ?? UnitOrder.MOVE;
+  for (const su of squad.units) {
+    const u = byId.get(su.id);
+    if (!u?.player) continue;
+    u.unitOrder = orderMap[su.unitOrder] ?? squadDefault;
     u.attackBarbGroupId = squad.attackGroupId ?? null;
-    if (mappedOrder === UnitOrder.HOLD) {
+    if (u.unitOrder === UnitOrder.HOLD || u.unitOrder === UnitOrder.FIRE_HOLD) {
       u.path = []; u.pathIdx = 0; u.moveVel = 0;
     }
   }
@@ -5836,21 +5906,35 @@ class WorldScene extends Phaser.Scene {
   _drawUnitHpBar(g, wx, wy, unitSize, zoom, u) {
     const max = u.maxHp ?? unitMaxHp(u.type);
     const pct = Math.max(0, Math.min(1, u.hp / max));
+    const arm = armorPctFromLevel(u.level) / 100;
     const barW = unitSize * 1.35;
-    const barH = Math.max(3, 5 / zoom);
+    const hpH = Math.max(2.5, 4 / zoom);
+    const armH = Math.max(2, 3 / zoom);
+    const gap = Math.max(0.5, 1 / zoom);
+    const totalH = hpH + gap + armH;
     const x = wx - barW / 2;
-    const y = wy - unitSize * 0.72 - barH;
+    const y = wy - unitSize * 0.72 - totalH;
     const lw = Math.max(0.4, 0.8 / zoom);
     const fill = pct > 0.6 ? 0x2ecc71 : pct > 0.3 ? 0xf1c40f : 0xe74c3c;
 
     g.fillStyle(0x000000, 0.7);
-    g.fillRect(x - lw, y - lw, barW + lw * 2, barH + lw * 2);
+    g.fillRect(x - lw, y - lw, barW + lw * 2, totalH + lw * 2);
     g.fillStyle(0x21262d, 1);
-    g.fillRect(x, y, barW, barH);
+    g.fillRect(x, y, barW, hpH);
     g.fillStyle(fill, 1);
-    g.fillRect(x, y, barW * pct, barH);
+    g.fillRect(x, y, barW * pct, hpH);
     g.lineStyle(lw, 0xffffff, 0.35);
-    g.strokeRect(x, y, barW, barH);
+    g.strokeRect(x, y, barW, hpH);
+
+    const ay = y + hpH + gap;
+    g.fillStyle(0x21262d, 1);
+    g.fillRect(x, ay, barW, armH);
+    if (arm > 0) {
+      g.fillStyle(0x8b949e, 1);
+      g.fillRect(x, ay, barW * arm, armH);
+    }
+    g.lineStyle(lw, 0x484f58, 0.5);
+    g.strokeRect(x, ay, barW, armH);
   }
 
   _drawSoldierCube(g, wx, wy, size, lw) {
@@ -6057,8 +6141,7 @@ document.getElementById("minimap-wrap").addEventListener("click", e => {
   }
 });
 
-// ── MMO guest auth ────────────────────────────────────────────────────────────
-const DF_SESSION_KEY = "df_session";
+// ── MMO auth (OAuth + guest key via auth-oauth.js) ───────────────────────────
 let dfAuthToken = null;
 let dfProfile = null;
 let gameStarted = false;
@@ -6356,18 +6439,12 @@ function updateCaptainHud() {
 function saveDfSession(token, profile) {
   dfAuthToken = token;
   dfProfile = profile;
-  localStorage.setItem(DF_SESSION_KEY, JSON.stringify({ token, profile }));
+  window.DfAuth?.saveDfSession(token, profile);
   updateCaptainHud();
 }
 
 function loadDfSessionFromStorage() {
-  try {
-    const raw = localStorage.getItem(DF_SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  return window.DfAuth?.loadDfSession() ?? null;
 }
 
 function showLoginOverlay(message) {
@@ -6376,64 +6453,16 @@ function showLoginOverlay(message) {
   if (overlay) overlay.classList.remove("hidden");
   if (err) err.textContent = message ?? "";
   document.getElementById("status").textContent = "Identifícate para entrar al batallón";
+  window.DigitalFrontBgm?.init();
+  window.DigitalFrontBgm?.playMenu();
 }
 
 function hideLoginOverlay() {
   document.getElementById("login-overlay")?.classList.add("hidden");
 }
 
-async function validateDfSession(token) {
-  const r = await fetch(apiUrl("/api/profile/me"), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!r.ok) return null;
-  return r.json();
-}
-
 async function guestLogin(username) {
-  const r = await fetch(apiUrl("/api/auth/guest"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username }),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    const msg = data.message
-      || (data.error === "mmo_services_unavailable"
-        ? "Servidor MMO no disponible. Ejecuta: npm run infra:up && npm run db:migrate"
-        : null)
-      || data.error
-      || "No se pudo iniciar sesión";
-    throw new Error(msg);
-  }
-  return data;
-}
-
-function startSimTransport() {
-  connectSimWs();
-  simCtrl({ action: "play" });
-  simCtrl({ action: "speed", value: 1 });
-}
-
-function startGameAfterAuth() {
-  if (gameStarted) return;
-  gameStarted = true;
-  hideLoginOverlay();
-  hideSettingsOverlay();
-  if (!initPhaserGame()) {
-    showLoginOverlay("No se pudo iniciar el motor del juego (Phaser). Recarga la página.");
-    gameStarted = false;
-    return;
-  }
-  if (DEVICE_PROFILE === 'mobile') {
-    document.getElementById('tactical-panel')?.classList.add('collapsed');
-    document.body.classList.add('mobile-play');
-    initMobileHud();
-  } else {
-    document.getElementById('chat-panel')?.classList.add('visible');
-  }
-  startSimTransport();
-  setTimeout(generate, 300);
+  return window.DfAuth.loginAsGuest(username);
 }
 
 async function tryRestoreDfSession() {
@@ -6441,21 +6470,19 @@ async function tryRestoreDfSession() {
     showSettingsOverlay();
     return;
   }
-  const stored = loadDfSessionFromStorage();
-  if (!stored?.token) {
-    showLoginOverlay();
-    return;
-  }
   document.getElementById("status").textContent = "Verificando sesión…";
   try {
-    const profile = await validateDfSession(stored.token);
-    if (!profile) {
-      localStorage.removeItem(DF_SESSION_KEY);
-      showLoginOverlay("Tu sesión expiró. Vuelve a entrar.");
+    const restored = await window.DfAuth.tryRestoreDfSession();
+    if (restored?.error) {
+      showLoginOverlay(restored.error);
       return;
     }
-    saveDfSession(stored.token, profile);
-    startGameAfterAuth();
+    if (restored?.token && restored?.profile) {
+      saveDfSession(restored.token, restored.profile);
+      startGameAfterAuth();
+      return;
+    }
+    showLoginOverlay();
   } catch {
     showLoginOverlay("No se pudo conectar al servidor. ¿Está levantado?");
   }
@@ -6489,6 +6516,53 @@ async function submitGuestLogin() {
   }
 }
 
+async function submitOAuthLogin(provider) {
+  const err = document.getElementById("login-error");
+  const ghBtn = document.getElementById("login-github");
+  const xBtn = document.getElementById("login-x");
+  if (err) err.textContent = "";
+  if (ghBtn) ghBtn.disabled = true;
+  if (xBtn) xBtn.disabled = true;
+  try {
+    if (provider === "github") await window.DfAuth.loginWithGitHub();
+    else await window.DfAuth.loginWithX();
+  } catch (e) {
+    if (err) err.textContent = e.message || "OAuth no disponible";
+    if (ghBtn) ghBtn.disabled = false;
+    if (xBtn) xBtn.disabled = false;
+  }
+}
+
+document.getElementById("login-github")?.addEventListener("click", () => submitOAuthLogin("github"));
+document.getElementById("login-x")?.addEventListener("click", () => submitOAuthLogin("x"));
+
+function startSimTransport() {
+  connectSimWs();
+  simCtrl({ action: "play" });
+  simCtrl({ action: "speed", value: 1 });
+}
+
+function startGameAfterAuth() {
+  if (gameStarted) return;
+  gameStarted = true;
+  window.DigitalFrontBgm?.playGame();
+  hideLoginOverlay();
+  hideSettingsOverlay();
+  if (!initPhaserGame()) {
+    showLoginOverlay("No se pudo iniciar el motor del juego (Phaser). Recarga la página.");
+    gameStarted = false;
+    return;
+  }
+  if (DEVICE_PROFILE === 'mobile') {
+    document.getElementById('tactical-panel')?.classList.add('collapsed');
+    document.body.classList.add('mobile-play');
+    initMobileHud();
+  } else {
+    document.getElementById('chat-panel')?.classList.add('visible');
+  }
+  startSimTransport();
+  setTimeout(generate, 300);
+}
 document.getElementById("login-submit")?.addEventListener("click", submitGuestLogin);
 document.getElementById("login-username")?.addEventListener("keydown", e => {
   if (e.key === "Enter") submitGuestLogin();
@@ -6549,6 +6623,7 @@ function updateRefugeChip(insideId, homeId) {
   const wasInside = !!playerInsideOutpost;
   playerInsideOutpost = insideId;
   if (homeId != null) playerHomeOutpostId = homeId;
+  if (!!insideId !== wasInside) resetPlayerRenderSnap();
   const chip = document.getElementById('hud-refuge');
   if (chip) chip.classList.toggle('active', !!insideId);
   const banner = document.getElementById('refuge-banner');
@@ -6689,10 +6764,16 @@ function initHudExtras() {
     muteBtn.classList.toggle('muted', DigitalFrontSfx.isMuted());
     muteBtn.textContent = DigitalFrontSfx.isMuted() ? '🔇' : '🔊';
     muteBtn.addEventListener('click', () => {
-      DigitalFrontSfx.toggleMuted();
-      muteBtn.textContent = DigitalFrontSfx.isMuted() ? '🔇' : '🔊';
-      if (!DigitalFrontSfx.isMuted()) DigitalFrontSfx.play('ui');
+      const next = DigitalFrontSfx.toggleMuted();
+      window.DigitalFrontBgm?.setMuted(next);
+      muteBtn.textContent = next ? '🔇' : '🔊';
+      muteBtn.classList.toggle('muted', next);
+      if (!next) DigitalFrontSfx.play('ui');
     });
+  }
+  window.DigitalFrontBgm?.init();
+  if (!document.getElementById('login-overlay')?.classList.contains('hidden')) {
+    window.DigitalFrontBgm?.playMenu();
   }
   document.getElementById('chat-send')?.addEventListener('click', sendChatMessage);
   document.getElementById('chat-input')?.addEventListener('keydown', e => {
@@ -6706,6 +6787,10 @@ function initHudExtras() {
   });
   document.getElementById('death-respawn-btn')?.addEventListener('click', () => {
     if (deathSelectedOutpost) sendCampAction('respawn', deathSelectedOutpost);
+  });
+  document.getElementById('refuge-exit-btn')?.addEventListener('click', () => {
+    if (playerInsideOutpost) sendCampAction('exit', playerInsideOutpost);
+    else showToast('No estás en un refugio', 2000);
   });
   document.getElementById('camp-modal-close')?.addEventListener('click', closeCampModal);
   document.querySelectorAll('[data-camp-action]').forEach(btn => {
@@ -7007,8 +7092,9 @@ function connectSimWs() {
         return;
       }
       if (msg.type === "camp_ok") {
-        if (msg.playerSquad) mergePlayerSquadFromServer(msg.playerSquad);
-        if (msg.action === "exit") showToast("¡En el campo! Mantén pulsado el mapa para mover.", 3500);
+        if (msg.playerSquad) mergePlayerSquadFromServer(msg.playerSquad, { fullSnap: true });
+        resetPlayerRenderSnap();
+        if (msg.action === "exit") showToast("¡En el campo! Clic derecho en el mapa para mover.", 3500);
         if (msg.action === 'respawn') hideDeathScreen();
         closeCampModal();
         simEpoch++;
@@ -7030,7 +7116,7 @@ function connectSimWs() {
         wsAuthenticated = false;
         wsConnected = false;
         updateConnectionUi();
-        localStorage.removeItem(DF_SESSION_KEY);
+        window.DfAuth?.clearDfSession();
         dfAuthToken = null;
         dfProfile = null;
         gameStarted = false;

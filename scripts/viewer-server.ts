@@ -1219,6 +1219,7 @@ function handleWsMessage(client: WsSimClient, raw: string): void {
         attackProfileId: order.targetProfileId,
         unitOrder,
         appendWaypoint: order.appendWaypoint,
+        unitIds: order.unitIds,
       },
     );
     void refreshOnlinePresence(client.profileId);

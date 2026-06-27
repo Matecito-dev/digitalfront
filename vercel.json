@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm run build:web",
   "outputDirectory": "web",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/auth/github/callback", "destination": "/index.html" },
+    { "source": "/auth/x/callback", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

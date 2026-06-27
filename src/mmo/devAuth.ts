@@ -7,6 +7,7 @@ import {
   validateUsername,
   type PlayerProfile,
 } from "./profile.js";
+import { generateGuestKey, isValidGuestKey } from "./oauth.js";
 import type { SessionPayload } from "./session.js";
 
 /** In-memory guest auth when Postgres/Redis are unavailable (local dev). */
@@ -15,6 +16,7 @@ let devAuthEnabled = false;
 const sessions = new Map<string, SessionPayload>();
 const profilesById = new Map<string, PlayerProfile>();
 const profilesByUsernameLower = new Map<string, PlayerProfile>();
+const profilesByGuestKey = new Map<string, PlayerProfile>();
 
 export function setDevAuthEnabled(enabled: boolean): void {
   devAuthEnabled = enabled;
@@ -24,7 +26,43 @@ export function isDevAuthEnabled(): boolean {
   return devAuthEnabled;
 }
 
-export function createDevGuestSession(rawUsername: string): { token: string; profile: PlayerProfile } {
+export function findDevProfileByGuestKey(guestKey: string): PlayerProfile | null {
+  return profilesByGuestKey.get(guestKey) ?? null;
+}
+
+function issueDevToken(profile: PlayerProfile): string {
+  profile.lastSeenAt = new Date();
+  const token = crypto.randomBytes(32).toString("hex");
+  sessions.set(token, {
+    profileId: profile.id,
+    captainName: profile.captainName,
+    createdAt: new Date().toISOString(),
+  });
+  return token;
+}
+
+function ensureDevGuestKey(profile: PlayerProfile): string {
+  for (const [key, p] of profilesByGuestKey) {
+    if (p.id === profile.id) return key;
+  }
+  const guestKey = generateGuestKey();
+  profilesByGuestKey.set(guestKey, profile);
+  return guestKey;
+}
+
+export function createDevGuestSession(
+  rawUsername?: string,
+  guestKey?: string | null,
+): { token: string; profile: PlayerProfile; guestKey?: string } {
+  if (guestKey && isValidGuestKey(guestKey)) {
+    const existing = findDevProfileByGuestKey(guestKey);
+    if (existing) {
+      return { token: issueDevToken(existing), profile: existing };
+    }
+  }
+
+  if (!rawUsername) throw new Error("username_required");
+
   const err = validateUsername(rawUsername);
   if (err) throw new Error(err);
 
@@ -38,6 +76,8 @@ export function createDevGuestSession(rawUsername: string): { token: string; pro
       id,
       username,
       captainName: sanitizeCaptainName(username),
+      authProvider: "guest",
+      avatarUrl: null,
       createdAt: now,
       lastSeenAt: now,
       stats: {
@@ -50,18 +90,10 @@ export function createDevGuestSession(rawUsername: string): { token: string; pro
     };
     profilesById.set(id, profile);
     profilesByUsernameLower.set(lower, profile);
-  } else {
-    profile.lastSeenAt = new Date();
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, {
-    profileId: profile.id,
-    captainName: profile.captainName,
-    createdAt: new Date().toISOString(),
-  });
-
-  return { token, profile };
+  const key = ensureDevGuestKey(profile);
+  return { token: issueDevToken(profile), profile, guestKey: key };
 }
 
 export function validateDevSessionToken(token: string): SessionPayload | null {

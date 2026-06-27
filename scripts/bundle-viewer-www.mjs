@@ -10,6 +10,7 @@ const OUT = join(ROOT, 'app-www');
 
 const COPY_FILES = [
   'branding.js',
+  'auth-oauth.js',
   'terrain-tactics.js',
   'tactical-orders.js',
   'path-worker.js',
@@ -29,6 +30,12 @@ for (const f of COPY_FILES) {
 
 await cp(join(VIEWER, 'vendor', 'phaser.min.js'), join(OUT, 'vendor', 'phaser.min.js'));
 
+for (const d of ['audio', 'assets']) {
+  try {
+    await cp(join(VIEWER, d), join(OUT, d), { recursive: true });
+  } catch { /* optional */ }
+}
+
 let html = await readFile(join(VIEWER, 'index.html'), 'utf8');
 html = html
   .replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/phaser@[^"']+/g, './vendor/phaser.min.js')
@@ -36,6 +43,7 @@ html = html
   .replace(/src="\/tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="config\.js"/g, 'src="./config.js"')
   .replace(/src="branding\.js"/g, 'src="./branding.js"')
+  .replace(/src="auth-oauth\.js"/g, 'src="./auth-oauth.js"')
   .replace(/src="terrain-tactics\.js"/g, 'src="./terrain-tactics.js"')
   .replace(/src="tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="capacitor-init\.js"/g, 'src="./capacitor-init.js"')

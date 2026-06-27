@@ -15,6 +15,7 @@ const siteUrl = (process.env.VERCEL_URL
 
 const COPY_FILES = [
   'branding.js',
+  'auth-oauth.js',
   'terrain-tactics.js',
   'tactical-orders.js',
   'path-worker.js',
@@ -25,7 +26,7 @@ const COPY_FILES = [
   'og-cover.png',
 ];
 
-const COPY_DIRS = ['audio'];
+const COPY_DIRS = ['audio', 'assets'];
 
 await mkdir(join(OUT, 'vendor'), { recursive: true });
 
@@ -46,10 +47,12 @@ html = html
   .replace(/src="\/tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="config\.js"/g, 'src="./config.js"')
   .replace(/src="branding\.js"/g, 'src="./branding.js"')
+  .replace(/src="auth-oauth\.js"/g, 'src="./auth-oauth.js"')
   .replace(/src="terrain-tactics\.js"/g, 'src="./terrain-tactics.js"')
   .replace(/src="tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="capacitor-init\.js"/g, 'src="./capacitor-init.js"')
   .replace(/src="audio\/sfx\.js"/g, 'src="./audio/sfx.js"')
+  .replace(/src="audio\/bgm\.js"/g, 'src="./audio/bgm.js"')
   .replace(/href="hud\.css"/g, 'href="./hud.css"')
   .replace(/src="vendor\/phaser\.min\.js"/g, 'src="./vendor/phaser.min.js"')
   .replace(/new Worker\('\/path-worker\.js'\)/g, "new Worker('./path-worker.js')")

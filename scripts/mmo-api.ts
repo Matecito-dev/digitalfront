@@ -8,28 +8,35 @@ import {
   sessionKey,
 } from "../src/mmo/redisKeys.js";
 import {
-  normalizeUsername,
   profileFromRow,
   profileToJson,
   rankingOrderColumn,
   rankingRedisKey,
-  sanitizeCaptainName,
   type PlayerProfile,
   type ProfileRow,
   type RankingSort,
   usernameErrorMessage,
-  usernameLower,
   validateUsername,
 } from "../src/mmo/profile.js";
 import { syncRankingZsets } from "../src/mmo/ranking.js";
 import { updateExploredPctMax } from "../src/mmo/stats.js";
 import {
   createDevGuestSession,
+  findDevProfileByGuestKey,
   getDevProfile,
   isDevAuthEnabled,
   profileMeJson,
   validateDevSessionToken,
 } from "../src/mmo/devAuth.js";
+import {
+  createGuestProfile,
+  exchangeGitHubCode,
+  exchangeXCode,
+  findProfileByGuestKey,
+  generateGuestKey,
+  isValidGuestKey,
+} from "../src/mmo/oauth.js";
+import { oauthPublicConfig, readOAuthSecrets } from "../src/mmo/oauthConfig.js";
 import { BRAND } from "../src/shared/branding.js";
 import { getShardId } from "../src/persist/worldPersistence.js";
 import {
@@ -82,20 +89,39 @@ async function handleDevGuestAuth(req: http.IncomingMessage, res: http.ServerRes
     return;
   }
   const body = await readBody(req);
-  let username: string;
+  let username: string | undefined;
+  let guestKey: string | undefined;
   try {
-    username = (JSON.parse(body) as { username?: string }).username ?? "";
+    const parsed = JSON.parse(body) as { username?: string; guestKey?: string };
+    username = parsed.username;
+    guestKey = parsed.guestKey;
   } catch {
     sendJson(req, res, 400, { error: "invalid_json" });
     return;
   }
-  const validation = validateUsername(username);
+
+  if (guestKey && isValidGuestKey(guestKey)) {
+    const existing = findDevProfileByGuestKey(guestKey);
+    if (existing) {
+      const { token, profile } = createDevGuestSession(undefined, guestKey);
+      sendJson(req, res, 200, { token, profile: profileToJson(profile) });
+      return;
+    }
+  }
+
+  const validation = validateUsername(username ?? "");
   if (validation) {
     sendJson(req, res, 400, { error: validation, message: usernameErrorMessage(validation) });
     return;
   }
-  const { token, profile } = createDevGuestSession(username);
-  sendJson(req, res, 200, { token, profile: profileToJson(profile) });
+
+  try {
+    const { token, profile, guestKey: newKey } = createDevGuestSession(username);
+    sendJson(req, res, 200, { token, profile: profileToJson(profile), guestKey: newKey });
+  } catch (err: unknown) {
+    const code = err instanceof Error ? err.message : "invalid_request";
+    sendJson(req, res, 400, { error: code });
+  }
 }
 
 async function handleDevProfileMe(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -123,21 +149,6 @@ async function findProfileById(pool: pg.Pool, id: string): Promise<PlayerProfile
     [id],
   );
   return rows[0] ? profileFromRow(rows[0]) : null;
-}
-
-async function upsertGuestProfile(pool: pg.Pool, rawUsername: string): Promise<PlayerProfile> {
-  const username = normalizeUsername(rawUsername);
-  const lower = usernameLower(username);
-  const captainName = sanitizeCaptainName(username);
-
-  const { rows } = await pool.query<ProfileRow>(
-    `INSERT INTO profiles (username, username_lower, captain_name)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (username_lower) DO UPDATE SET last_seen_at = now()
-     RETURNING *`,
-    [username, lower, captainName],
-  );
-  return profileFromRow(rows[0]!);
 }
 
 async function syncProfileRanking(redis: Redis, profile: PlayerProfile): Promise<void> {
@@ -188,32 +199,137 @@ async function handleGuestAuth(req: http.IncomingMessage, res: http.ServerRespon
   const pool = getPool();
   const redis = getRedis();
   const body = await readBody(req);
-  let username: string;
+  let username: string | undefined;
+  let guestKey: string | undefined;
   try {
-    username = (JSON.parse(body) as { username?: string }).username ?? "";
+    const parsed = JSON.parse(body) as { username?: string; guestKey?: string };
+    username = parsed.username;
+    guestKey = parsed.guestKey;
   } catch {
     sendJson(req, res, 400, { error: "invalid_json" });
     return;
   }
 
-  const validation = validateUsername(username);
+  if (guestKey && isValidGuestKey(guestKey)) {
+    const existing = await findProfileByGuestKey(pool, guestKey);
+    if (existing) {
+      const token = await createSession(redis, existing);
+      await syncProfileRanking(redis, existing);
+      sendJson(req, res, 200, { token, profile: profileToJson(existing) });
+      return;
+    }
+  }
+
+  const validation = validateUsername(username ?? "");
   if (validation) {
     sendJson(req, res, 400, { error: validation, message: usernameErrorMessage(validation) });
     return;
   }
 
   try {
-    const profile = await upsertGuestProfile(pool, username);
+    const newGuestKey = generateGuestKey();
+    const profile = await createGuestProfile(pool, username!, newGuestKey);
     const token = await createSession(redis, profile);
     await syncProfileRanking(redis, profile);
-    sendJson(req, res, 200, { token, profile: profileToJson(profile) });
+    sendJson(req, res, 200, { token, profile: profileToJson(profile), guestKey: newGuestKey });
   } catch (err: unknown) {
     const pgErr = err as { code?: string };
     if (pgErr.code === "23505") {
       sendJson(req, res, 409, { error: "username_taken", message: "Ese nombre ya está en uso." });
       return;
     }
+    const code = err instanceof Error ? err.message : "invalid_request";
+    if (code === "empty" || code === "too_short" || code === "too_long" || code === "invalid_chars" || code === "blocked") {
+      sendJson(req, res, 400, { error: code, message: usernameErrorMessage(code as Parameters<typeof usernameErrorMessage>[0]) });
+      return;
+    }
     throw err;
+  }
+}
+
+async function handleAuthProviders(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  const secrets = readOAuthSecrets();
+  sendJson(req, res, 200, oauthPublicConfig(secrets));
+}
+
+async function handleOAuthGitHub(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  if (!checkGuestAuthRateLimit(clientIp(req))) {
+    sendJson(req, res, 429, { error: "rate_limited", message: "Demasiados intentos. Espera un minuto." });
+    return;
+  }
+  const body = await readBody(req);
+  let code: string;
+  try {
+    code = (JSON.parse(body) as { code?: string }).code ?? "";
+  } catch {
+    sendJson(req, res, 400, { error: "invalid_json" });
+    return;
+  }
+  if (!code) {
+    sendJson(req, res, 400, { error: "missing_code" });
+    return;
+  }
+
+  const pool = getPool();
+  const redis = getRedis();
+  const secrets = readOAuthSecrets();
+  try {
+    const result = await exchangeGitHubCode(pool, secrets, code, p => createSession(redis, p));
+    const profile = await findProfileById(pool, result.profile.id);
+    if (profile) await syncProfileRanking(redis, profile);
+    sendJson(req, res, 200, result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "oauth_failed";
+    if (msg === "github_not_configured") {
+      sendJson(req, res, 503, { error: msg, message: "GitHub OAuth no configurado en el servidor." });
+      return;
+    }
+    console.error("[oauth/github]", err);
+    sendJson(req, res, 400, { error: "oauth_failed", message: "No se pudo completar el inicio con GitHub." });
+  }
+}
+
+async function handleOAuthX(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  if (!checkGuestAuthRateLimit(clientIp(req))) {
+    sendJson(req, res, 429, { error: "rate_limited", message: "Demasiados intentos. Espera un minuto." });
+    return;
+  }
+  const body = await readBody(req);
+  let code: string;
+  let codeVerifier: string;
+  try {
+    const parsed = JSON.parse(body) as { code?: string; codeVerifier?: string };
+    code = parsed.code ?? "";
+    codeVerifier = parsed.codeVerifier ?? "";
+  } catch {
+    sendJson(req, res, 400, { error: "invalid_json" });
+    return;
+  }
+  if (!code) {
+    sendJson(req, res, 400, { error: "missing_code" });
+    return;
+  }
+
+  const pool = getPool();
+  const redis = getRedis();
+  const secrets = readOAuthSecrets();
+  try {
+    const result = await exchangeXCode(pool, secrets, code, codeVerifier, p => createSession(redis, p));
+    const profile = await findProfileById(pool, result.profile.id);
+    if (profile) await syncProfileRanking(redis, profile);
+    sendJson(req, res, 200, result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "oauth_failed";
+    if (msg === "x_not_configured") {
+      sendJson(req, res, 503, { error: msg, message: "X OAuth no configurado en el servidor." });
+      return;
+    }
+    if (msg === "missing_code_verifier") {
+      sendJson(req, res, 400, { error: msg, message: "Falta code_verifier (PKCE)." });
+      return;
+    }
+    console.error("[oauth/x]", err);
+    sendJson(req, res, 400, { error: "oauth_failed", message: "No se pudo completar el inicio con X." });
   }
 }
 
@@ -428,6 +544,9 @@ export async function handleMmoApi(
 
   const isMmoRoute =
     path === "/api/auth/guest"
+    || path === "/api/auth/providers"
+    || path === "/api/auth/oauth/github"
+    || path === "/api/auth/oauth/x"
     || path === "/api/profile/me"
     || path === "/api/ranking"
     || path === "/api/profile/stats"
@@ -435,6 +554,11 @@ export async function handleMmoApi(
     || path === "/api/profile/chronicle";
 
   if (!isMmoRoute) return false;
+
+  if (path === "/api/auth/providers" && req.method === "GET") {
+    await handleAuthProviders(req, res);
+    return true;
+  }
 
   if (!ctx.dbReady || !ctx.redisReady) {
     if (isDevAuthEnabled()) {
@@ -473,6 +597,14 @@ export async function handleMmoApi(
   try {
     if (path === "/api/auth/guest" && req.method === "POST") {
       await handleGuestAuth(req, res);
+      return true;
+    }
+    if (path === "/api/auth/oauth/github" && req.method === "POST") {
+      await handleOAuthGitHub(req, res);
+      return true;
+    }
+    if (path === "/api/auth/oauth/x" && req.method === "POST") {
+      await handleOAuthX(req, res);
       return true;
     }
     if (path === "/api/profile/me" && req.method === "GET") {

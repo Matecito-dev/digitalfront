@@ -1,8 +1,9 @@
-/** Procedural SFX via Web Audio — sin archivos externos. */
+/** Procedural SFX + opcional shot.mp3 / impact.mp3 en viewer/audio/ */
 (function () {
   const MUTE_KEY = 'df_sfx_muted';
   let ctx = null;
   let muted = localStorage.getItem(MUTE_KEY) === '1';
+  const samples = {};
 
   function ensureCtx() {
     if (ctx) return ctx;
@@ -15,6 +16,31 @@
   function resume() {
     const c = ensureCtx();
     if (c?.state === 'suspended') void c.resume();
+  }
+
+  function loadSample(name, file) {
+    fetch(file)
+      .then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+      .then(buf => ensureCtx()?.decodeAudioData(buf))
+      .then(decoded => { if (decoded) samples[name] = decoded; })
+      .catch(() => {});
+  }
+
+  loadSample('shot', './audio/shot.mp3');
+  loadSample('impact', './audio/impact.mp3');
+
+  function playSample(name, gain) {
+    const c = ensureCtx();
+    const buf = samples[name];
+    if (!c || !buf) return false;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const g = c.createGain();
+    g.gain.value = gain;
+    src.connect(g);
+    g.connect(c.destination);
+    src.start();
+    return true;
   }
 
   function playTone(freq, dur, type, gain, when) {
@@ -68,14 +94,19 @@
     },
     play(name) {
       resume();
+      if (muted || document.hidden) return;
       switch (name) {
         case 'shot':
-          playNoise(0.06, 0.08);
-          playTone(880, 0.04, 'square', 0.04);
+          if (!playSample('shot', 0.45)) {
+            playNoise(0.06, 0.08);
+            playTone(880, 0.04, 'square', 0.04);
+          }
           break;
         case 'impact':
-          playTone(120, 0.12, 'sine', 0.12);
-          playNoise(0.05, 0.06);
+          if (!playSample('impact', 0.5)) {
+            playTone(120, 0.12, 'sine', 0.12);
+            playNoise(0.05, 0.06);
+          }
           break;
         case 'alert':
           playTone(660, 0.1, 'triangle', 0.07);

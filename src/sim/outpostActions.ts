@@ -205,6 +205,16 @@ export function applyCampAction(
       if (!exitOutpost) return { ok: false, reason: "outpost_not_found", events };
       placeUnitsInRing(squad.units, exitOutpost.x, exitOutpost.y, exitOutpost.radius + 1);
       squad.insideOutpostId = null;
+      squad.order = "hold";
+      squad.unitOrder = "hold";
+      squad.path = [];
+      squad.pathIdx = 0;
+      squad.waypoints = [];
+      for (const u of squad.units) {
+        if (u.hp <= 0) continue;
+        u.unitOrder = "hold";
+        u.moveVel = 0;
+      }
       return { ok: true, events };
     }
 

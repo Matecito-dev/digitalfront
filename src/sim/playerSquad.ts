@@ -180,12 +180,18 @@ export function ensurePlayerSquad(
 
 function unitShouldHold(u: PlayerUnit, squad: PlayerSquad): boolean {
   const o = u.unitOrder ?? squad.unitOrder;
-  return o === "hold" || squad.order === "hold";
+  return o === "hold" || o === "fire_hold" || squad.order === "hold";
+}
+
+function getMovingUnits(squad: PlayerSquad): PlayerUnit[] {
+  const alive = squad.units.filter(u => u.hp > 0);
+  const moving = alive.filter(u => !unitShouldHold(u, squad));
+  return moving.length ? moving : alive;
 }
 
 function advanceSquadPathIndex(squad: PlayerSquad): void {
   if (!squad.path.length) return;
-  const center = getPlayerCentroid(squad.units);
+  const center = getPlayerCentroid(getMovingUnits(squad));
   while (squad.pathIdx < squad.path.length) {
     const wp = squad.path[squad.pathIdx];
     const isLast = squad.pathIdx >= squad.path.length - 1;
@@ -241,11 +247,11 @@ function resolveSquadMoveTarget(squad: PlayerSquad, state: WorldState): void {
 }
 
 function ensureSquadPath(squad: PlayerSquad, state: WorldState): void {
-  const alive = squad.units.filter(u => u.hp > 0);
-  if (!alive.length) return;
+  const moving = getMovingUnits(squad);
+  if (!moving.length) return;
   if (squad.order === "hold" && squad.unitOrder === "hold") return;
 
-  const center = getPlayerCentroid(alive);
+  const center = getPlayerCentroid(moving);
   const needsPath = !squad.path.length
     || squad.pathIdx >= squad.path.length
     || Math.hypot(
@@ -256,7 +262,7 @@ function ensureSquadPath(squad: PlayerSquad, state: WorldState): void {
   if (needsPath && Math.hypot(squad.targetX - center.x, squad.targetY - center.y) > ARRIVE_DIST) {
     squad.path = findPathMacro(state.terrain, center.x, center.y, squad.targetX, squad.targetY);
     squad.pathIdx = 0;
-    assignFormationOffsets(alive, squad.targetX, squad.targetY);
+    assignFormationOffsets(moving, squad.targetX, squad.targetY);
   }
 }
 
@@ -271,8 +277,15 @@ export function applyPlayerOrder(
     attackProfileId?: string | null;
     unitOrder?: SquadUnitOrder;
     appendWaypoint?: boolean;
+    unitIds?: string[] | null;
   },
 ): void {
+  const alive = squad.units.filter(u => u.hp > 0);
+  const idSet = opts?.unitIds?.length
+    ? new Set(opts.unitIds.filter(id => alive.some(u => u.id === id)))
+    : null;
+  const isPartial = idSet != null && idSet.size > 0 && idSet.size < alive.length;
+
   squad.order = order;
   squad.attackGroupId = order === "attack" ? attackGroupId : null;
   if (order === "attack_pvp") {
@@ -297,6 +310,17 @@ export function applyPlayerOrder(
   }
 
   syncUnitOrders(squad);
+
+  if (isPartial && idSet) {
+    for (const u of alive) {
+      if (!idSet.has(u.id)) {
+        u.unitOrder = "hold";
+        u.tx = u.x;
+        u.ty = u.y;
+        u.moveVel = 0;
+      }
+    }
+  }
 
   if (order === "hold" || squad.unitOrder === "hold") {
     squad.path = [];
@@ -326,13 +350,15 @@ export function applyPlayerOrder(
     squad.targetY = targetY;
   }
 
-  const alive = squad.units.filter(u => u.hp > 0);
-  if (!alive.length) return;
+  const pathUnits = isPartial && idSet
+    ? alive.filter(u => idSet.has(u.id))
+    : alive;
+  if (!pathUnits.length) return;
 
-  const center = getPlayerCentroid(alive);
+  const center = getPlayerCentroid(pathUnits);
   squad.path = findPathMacro(terrain, center.x, center.y, targetX, targetY);
   squad.pathIdx = 0;
-  assignFormationOffsets(alive, targetX, targetY);
+  assignFormationOffsets(pathUnits, targetX, targetY);
 }
 
 export const UNSTUCK_COOLDOWN_MS = 15_000;

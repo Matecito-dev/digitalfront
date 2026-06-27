@@ -50,10 +50,16 @@ sudo rsync -a --delete ${STAGING}/ ${REMOTE_DIR}/
 rm -rf ${STAGING}
 sudo chown -R svc-${SLUG}:svc-${SLUG} /srv/${SLUG}
 sudo systemctl restart ${SLUG}
-sleep 3
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  sleep 2
+  HEALTH_CODE=\$(curl -sf -o /dev/null -w "%{http_code}" http://127.0.0.1:${PORT}/api/health 2>/dev/null || echo "000")
+  if [ "\${HEALTH_CODE}" = "200" ]; then
+    echo "GET /api/health → HTTP 200 (intento \${i})"
+    break
+  fi
+  echo "Esperando health… intento \${i}/10 (HTTP \${HEALTH_CODE})"
+done
 sudo systemctl is-active ${SLUG}
-HEALTH_CODE=\$(curl -sf -o /dev/null -w "%{http_code}" http://127.0.0.1:${PORT}/api/health || echo "000")
-echo "GET /api/health → HTTP \${HEALTH_CODE}"
 if [ "\${HEALTH_CODE}" != "200" ]; then
   echo "Deploy failed: /api/health did not return 200"
   exit 1
