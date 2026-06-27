@@ -11,6 +11,7 @@ import {
   findUnderServedPlayer,
   NEAR_PLAYER_AOI_QUOTA,
 } from "./barbarianSpawnPlacements.js";
+import { isPlayerOnBarbDefeatCooldown } from "./barbarianDefeatCooldown.js";
 
 const SPAWN_CHANCE_PER_TICK = 0.06;
 
@@ -83,6 +84,7 @@ export function tickSpawn(state: WorldState, nowMs: number, rng: RNG): SimEvent[
 
   const underServed = findUnderServedPlayer(state);
   if (underServed) {
+    if (isPlayerOnBarbDefeatCooldown(underServed.profileId, nowMs)) return events;
     const pos = pickNearPlayer(state, rng, underServed);
     if (pos) {
       const evs = spawnOneGroup(state, pos, nowMs, rng);

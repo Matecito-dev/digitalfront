@@ -58,3 +58,32 @@ export function oauthPublicConfig(secrets: OAuthSecrets): OAuthPublicConfig {
       : null,
   };
 }
+
+const DEFAULT_REDIRECTS = [
+  "https://play.gamedevforge.com/auth/github/callback",
+  "https://play.gamedevforge.com/auth/x/callback",
+  "https://digitalfront.vercel.app/auth/github/callback",
+  "https://digitalfront.vercel.app/auth/x/callback",
+];
+
+/** Redirect URI permitida en intercambio OAuth (dominio actual o env). */
+export function resolveOAuthRedirect(
+  provider: OAuthProvider,
+  requested: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const secrets = readOAuthSecrets(env);
+  const cfg = provider === "github" ? secrets.github : secrets.x;
+  if (!cfg) throw new Error(`${provider}_not_configured`);
+
+  const extras = trim(env.DF_OAUTH_REDIRECTS ?? "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const allowed = new Set([cfg.redirectUri, ...DEFAULT_REDIRECTS, ...extras]);
+  const req = requested?.trim();
+  if (req && allowed.has(req)) return req;
+  if (req) throw new Error("invalid_redirect_uri");
+  return cfg.redirectUri;
+}

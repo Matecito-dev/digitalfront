@@ -17,6 +17,7 @@
 <meta name="twitter:description" content="MMORTS táctico en mapa procedural — explora, combate bárbaros, PvP en tiempo real.">
 <meta name="twitter:image" content="./og-cover.png">
 <script src="config.js"></script>
+<script src="version.js"></script>
 <script src="branding.js"></script>
 <script src="auth-oauth.js"></script>
 <link rel="stylesheet" href="hud.css">
@@ -550,6 +551,34 @@ body.mobile-play #connection-dot { display: inline-block; }
 #login-oauth .oauth-github:hover:not(:disabled) { background: #30363d; }
 #login-oauth .oauth-x { background: #000; border: 1px solid #30363d; color: #e6edf3; }
 #login-oauth .oauth-x:hover:not(:disabled) { background: #161616; }
+#login-apk-link { display: none !important; }
+#update-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  background: linear-gradient(90deg, #3d2e12 0%, #21262d 100%);
+  border-bottom: 1px solid #f0883e;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #f0883e;
+  text-align: center;
+  box-shadow: 0 4px 20px #00000088;
+}
+#update-banner.visible { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+#update-banner button {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: #f0883e;
+  color: #0d1117;
+  border: none;
+  cursor: pointer;
+}
+#update-banner button.sec { background: transparent; color: #8b949e; border: 1px solid #30363d; }
 #ranking-share { width: 100%; margin-top: 4px; font-size: 9px; }
 </style>
 </head>
@@ -581,12 +610,12 @@ body.mobile-play #connection-dot { display: inline-block; }
       <p id="login-hero-tagline">Guerra táctica en un mapa que se genera solo. Explora, pelea y sobrevive en el Valle de Bruma.</p>
       <img id="login-hero-banner" src="./assets/dgbanner.png" alt="" onerror="this.style.display='none'">
       <div class="login-version-row">
-        <span class="login-version-badge">v0.0.1</span>
-        <span class="login-version-label">Primer acceso público</span>
+        <span class="login-version-badge" id="login-version-badge">v0.0.1</span>
+        <span class="login-version-label" id="login-version-label">Primer acceso público</span>
       </div>
       <section id="login-changelog">
         <h3>Novedades</h3>
-        <ul>
+        <ul id="login-changelog-list">
           <li>Mapa procedural distinto en cada partida — colinas, ríos y atajos importan.</li>
           <li>Combate en tiempo real: bárbaros, otros jugadores y refugios para reagruparte.</li>
           <li>Mové solo las unidades que elijas; no todo el batallón a la vez.</li>
@@ -603,7 +632,7 @@ body.mobile-play #connection-dot { display: inline-block; }
         <button type="button" class="oauth-x" id="login-x">Continuar con X</button>
       </div>
       <div id="login-links">
-        <a href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
+        <a id="login-apk-link" href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
         <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
       </div>
       <div id="login-divider">o jugar como invitado</div>
@@ -617,6 +646,12 @@ body.mobile-play #connection-dot { display: inline-block; }
 </div>
 
 <div id="connection-banner">Reconectando…</div>
+
+<div id="update-banner" role="alert">
+  <span id="update-banner-text">Hay una nueva versión del juego.</span>
+  <button type="button" id="update-banner-reload">Actualizar ahora</button>
+  <button type="button" class="sec" id="update-banner-dismiss">Después</button>
+</div>
 
 <div id="daily-quests-panel">
   <h3>Misiones del día</h3>
@@ -844,11 +879,19 @@ body.mobile-play #connection-dot { display: inline-block; }
 const DF_API_KEY = "df_api_base";
 
 function getApiBase() {
-  const stored = localStorage.getItem(DF_API_KEY);
-  if (stored) return stored.replace(/\/$/, "");
-  const c = window.DF_CONFIG?.apiBase?.replace(/\/$/, "");
-  if (c) return c;
-  return `${location.protocol}//${location.host}`;
+  const configured = window.DF_CONFIG?.apiBase?.replace(/\/$/, "") || "";
+  const frontendOrigin = `${location.protocol}//${location.host}`;
+  const stored = localStorage.getItem(DF_API_KEY)?.replace(/\/$/, "") || "";
+
+  // Web (Vercel): usar siempre el API del build; evita df_api_base apuntando al frontend.
+  if (!isCapacitorNative()) {
+    if (configured) return configured;
+    if (stored && stored !== frontendOrigin) return stored;
+    return frontendOrigin;
+  }
+  if (stored) return stored;
+  if (configured) return configured;
+  return frontendOrigin;
 }
 
 function apiUrl(path) {
@@ -6566,12 +6609,67 @@ function loadDfSessionFromStorage() {
   return window.DfAuth?.loadDfSession() ?? null;
 }
 
+function removeBarbUnitFromClient(unitId, groupId) {
+  const group = barbarianGroups.find(g => g.id === groupId);
+  if (group) {
+    group.units = (group.units ?? []).filter(u => u.id !== unitId && u.hp > 0);
+    if (!group.units.length) {
+      barbarianGroups = barbarianGroups.filter(g => g.id !== groupId);
+      clearBarbGroupObjective(groupId);
+    }
+  }
+  localBarbHp.delete(unitId);
+}
+
+function dismissUpdateBanner() {
+  document.getElementById('update-banner')?.classList.remove('visible');
+}
+
+function showUpdateBanner(serverVersion) {
+  const clientVersion = window.DF_GAME_VERSION ?? '0.0.0';
+  if (!serverVersion || serverVersion === clientVersion) {
+    dismissUpdateBanner();
+    return;
+  }
+  const dismissed = sessionStorage.getItem('df_dismiss_update') === serverVersion;
+  if (dismissed) return;
+  const el = document.getElementById('update-banner');
+  const txt = document.getElementById('update-banner-text');
+  if (txt) txt.textContent = `Nueva versión v${serverVersion} (tenés v${clientVersion}). Recargá para actualizar.`;
+  el?.classList.add('visible');
+}
+
+function checkGameVersion(serverVersion) {
+  if (serverVersion) showUpdateBanner(serverVersion);
+}
+
+function applyLoginVersionInfo() {
+  const info = window.DF_GAME_VERSION_INFO;
+  if (!info) return;
+  const badge = document.getElementById('login-version-badge');
+  const label = document.getElementById('login-version-label');
+  const list = document.getElementById('login-changelog-list');
+  if (badge && info.version) badge.textContent = `v${info.version}`;
+  if (label && info.title) label.textContent = info.title;
+  if (list && Array.isArray(info.changelog) && info.changelog.length) {
+    list.innerHTML = info.changelog.map(line => `<li>${line}</li>`).join('');
+  }
+}
+
+document.getElementById('update-banner-reload')?.addEventListener('click', () => location.reload());
+document.getElementById('update-banner-dismiss')?.addEventListener('click', () => {
+  const serverVersion = sessionStorage.getItem('df_pending_update');
+  if (serverVersion) sessionStorage.setItem('df_dismiss_update', serverVersion);
+  dismissUpdateBanner();
+});
+
 function showLoginOverlay(message) {
   const overlay = document.getElementById("login-overlay");
   const err = document.getElementById("login-error");
   if (overlay) overlay.classList.remove("hidden");
   if (err) err.textContent = message ?? "";
   document.getElementById("status").textContent = "Identifícate para entrar al batallón";
+  applyLoginVersionInfo();
   window.DigitalFrontBgm?.init();
   window.DigitalFrontBgm?.playMenu();
   void window.DfAuth?.refreshOAuthButtons?.();
@@ -6586,6 +6684,9 @@ async function guestLogin(username) {
 }
 
 async function tryRestoreDfSession() {
+  if (window.DfAuth?.isOAuthCallbackPath?.()) {
+    showLoginOverlay("Completando inicio de sesión…");
+  }
   if (needsServerSettings()) {
     showSettingsOverlay();
     return;
@@ -6977,6 +7078,9 @@ function applySimEvents(events) {
     }
     if (ev.type === 'BARB_UNIT_HIT') {
       spawnCombatHitFx(ev);
+      if (ev.remainingHp != null && ev.remainingHp <= 0 && ev.targetUnitId) {
+        removeBarbUnitFromClient(ev.targetUnitId, ev.groupId);
+      }
       window.DigitalFrontSfx?.play('impact');
       continue;
     }
@@ -6995,6 +7099,15 @@ function applySimEvents(events) {
       const u = info?.unit;
       const pos = u ? (info.kind === 'barb' ? getBarbRenderPos(u) : u) : null;
       if (pos) spawnDeathPop(pos.x, pos.y);
+      removeBarbUnitFromClient(ev.unitId, ev.groupId);
+      continue;
+    }
+    if (ev.type === 'GROUP_DISBANDED' || ev.type === 'GROUP_DEFEATED') {
+      const gid = ev.groupId ?? ev.loserGroupId;
+      if (gid) {
+        barbarianGroups = barbarianGroups.filter(g => g.id !== gid);
+        clearBarbGroupObjective(gid);
+      }
       continue;
     }
     if (ev.type === 'UNIT_LEVEL_UP') {
@@ -7066,6 +7179,10 @@ function finishSimTick(msg) {
 
 function handleSimMessage(msg) {
   try {
+    if (msg.gameVersion) {
+      sessionStorage.setItem('df_pending_update', msg.gameVersion);
+      checkGameVersion(msg.gameVersion);
+    }
     if (msg.type === "TICK" || msg.type === "snapshot") {
       camps     = msg.camps     ?? [];
       outposts  = msg.outposts  ?? outposts;
@@ -7429,7 +7546,11 @@ document.getElementById("inp-seed")?.addEventListener("input", e => {
   if (lbl && seed) lbl.textContent = worldDisplayName(seed);
 });
 
-window.addEventListener('load', () => tryRestoreDfSession());
+if (window.DfAuth?.isOAuthCallbackPath?.()) {
+  tryRestoreDfSession();
+} else {
+  window.addEventListener('load', () => tryRestoreDfSession());
+}
 </script>
 </body>
 </html>

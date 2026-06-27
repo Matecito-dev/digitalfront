@@ -11,6 +11,7 @@ const OUT = join(ROOT, 'app-www');
 const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
+  'version.js',
   'terrain-tactics.js',
   'tactical-orders.js',
   'path-worker.js',

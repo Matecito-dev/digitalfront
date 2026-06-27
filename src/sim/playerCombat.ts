@@ -26,6 +26,7 @@ import {
   tickIntensityDecay,
   engagePlayerWithGroup,
 } from "./combatResolver.js";
+import { markPlayerBarbDefeat } from "../barbarians/barbarianDefeatCooldown.js";
 
 type PveHitPayload = {
   attackerUnitId: string;
@@ -162,6 +163,7 @@ function tickSquadVsBarbarians(
   group.units = group.units.filter(u => u.hp > 0);
   if (!group.units.length) {
     awardGroupDefeatGold(squad, { ...group, units: Array.from({ length: defeatedCount }) }, rng, events);
+    markPlayerBarbDefeat(squad.profileId, nowMs);
     events.push({
       type: "GROUP_DEFEATED",
       loserGroupId: group.id,

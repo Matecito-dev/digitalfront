@@ -1,3 +1,4 @@
+import { getGameVersionString, getGameVersion } from "../src/mmo/gameVersion.js";
 import http from "node:http";
 import zlib from "node:zlib";
 import fs   from "node:fs";
@@ -540,6 +541,7 @@ function broadcastWsTick(events: ReturnType<typeof tick>): void {
       const snap = {
         type: "snapshot",
         seq: simTickSeq,
+        gameVersion: getGameVersionString(),
         simTimeMs: base.simTimeMs,
         season: base.season,
         phase: base.phase,
@@ -574,6 +576,7 @@ function broadcastWsTick(events: ReturnType<typeof tick>): void {
     sendWs(client, {
       type: "delta",
       seq: simTickSeq,
+      gameVersion: getGameVersionString(),
       simTimeMs: base.simTimeMs,
       season: base.season,
       phase: base.phase,
@@ -962,6 +965,7 @@ function sendInitialSnapshot(client: WsSimClient): void {
   sendWs(client, {
     type: "snapshot",
     seq: simTickSeq,
+    gameVersion: getGameVersionString(),
     simTimeMs: base.simTimeMs,
     season: base.season,
     phase: base.phase,
@@ -1234,6 +1238,11 @@ const server = http.createServer(async (req, res) => {
   const gz   = (req.headers["accept-encoding"] ?? "").includes("gzip");
 
   if (await handleMmoApi(req, res, url, mmoCtx)) return;
+
+  if (url.pathname === "/api/version" && req.method === "GET") {
+    sendJson(req, res, getGameVersion());
+    return;
+  }
 
   if (url.pathname === "/api/health" && req.method === "GET") {
     sendJson(req, res, {

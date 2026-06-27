@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { oauthPublicConfig, readOAuthSecrets } from "../oauthConfig.js";
+import { oauthPublicConfig, readOAuthSecrets, resolveOAuthRedirect } from "../oauthConfig.js";
 
 describe("oauthConfig", () => {
   it("readOAuthSecrets returns null providers when env incomplete", () => {
@@ -28,6 +28,20 @@ describe("oauthConfig", () => {
       GITHUB_REDIRECT_URI: "https://play.example.com/auth/github/callback",
     });
     expect(secrets.github).toBeNull();
+  });
+
+  it("resolveOAuthRedirect accepts known production URLs", () => {
+    const env = {
+      X_CLIENT_ID: "x-id",
+      X_CLIENT_SECRET: "x-secret",
+      X_REDIRECT_URI: "https://play.gamedevforge.com/auth/x/callback",
+    };
+    const uri = resolveOAuthRedirect(
+      "x",
+      "https://digitalfront.vercel.app/auth/x/callback",
+      env,
+    );
+    expect(uri).toBe("https://digitalfront.vercel.app/auth/x/callback");
   });
 
   it("oauthPublicConfig strips secrets", () => {

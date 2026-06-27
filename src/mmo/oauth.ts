@@ -10,6 +10,7 @@ import {
   validateUsername,
 } from "./profile.js";
 import type { OAuthSecrets } from "./oauthConfig.js";
+import { resolveOAuthRedirect } from "./oauthConfig.js";
 
 export interface OAuthExchangeResult {
   token: string;
@@ -92,11 +93,13 @@ export async function exchangeGitHubCode(
   secrets: OAuthSecrets,
   code: string,
   createSession: (profile: PlayerProfile) => Promise<string>,
+  redirectUriOverride?: string,
 ): Promise<OAuthExchangeResult> {
   const cfg = secrets.github;
   if (!cfg) throw new Error("github_not_configured");
+  const redirectUri = redirectUriOverride ?? cfg.redirectUri;
 
-  const tokenRes = await fetchJson<{ access_token?: string; error?: string }>(
+  const tokenRes = await fetchJson<{ access_token?: string; error?: string; error_description?: string }>(
     "https://github.com/login/oauth/access_token",
     {
       method: "POST",
@@ -105,11 +108,13 @@ export async function exchangeGitHubCode(
         client_id: cfg.clientId,
         client_secret: cfg.clientSecret,
         code,
-        redirect_uri: cfg.redirectUri,
+        redirect_uri: redirectUri,
       }),
     },
   );
-  if (!tokenRes.access_token) throw new Error(tokenRes.error ?? "github_token_failed");
+  if (!tokenRes.access_token) {
+    throw new Error(tokenRes.error_description ?? tokenRes.error ?? "github_token_failed");
+  }
 
   const user = await fetchJson<{ id: number; login: string; name?: string; avatar_url?: string }>(
     "https://api.github.com/user",
@@ -134,21 +139,23 @@ export async function exchangeXCode(
   code: string,
   codeVerifier: string,
   createSession: (profile: PlayerProfile) => Promise<string>,
+  redirectUriOverride?: string,
 ): Promise<OAuthExchangeResult> {
   const cfg = secrets.x;
   if (!cfg) throw new Error("x_not_configured");
   if (!codeVerifier) throw new Error("missing_code_verifier");
+  const redirectUri = redirectUriOverride ?? cfg.redirectUri;
 
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
-    redirect_uri: cfg.redirectUri,
+    redirect_uri: redirectUri,
     client_id: cfg.clientId,
     code_verifier: codeVerifier,
   });
 
   const basic = Buffer.from(`${cfg.clientId}:${cfg.clientSecret}`).toString("base64");
-  const tokenRes = await fetchJson<{ access_token?: string; error?: string }>(
+  const tokenRes = await fetchJson<{ access_token?: string; error?: string; error_description?: string }>(
     "https://api.twitter.com/2/oauth2/token",
     {
       method: "POST",
@@ -159,7 +166,9 @@ export async function exchangeXCode(
       body,
     },
   );
-  if (!tokenRes.access_token) throw new Error(tokenRes.error ?? "x_token_failed");
+  if (!tokenRes.access_token) {
+    throw new Error(tokenRes.error_description ?? tokenRes.error ?? "x_token_failed");
+  }
 
   const me = await fetchJson<{ data?: { id: string; username: string; name?: string; profile_image_url?: string } }>(
     "https://api.twitter.com/2/users/me?user.fields=profile_image_url",

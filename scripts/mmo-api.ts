@@ -36,7 +36,7 @@ import {
   generateGuestKey,
   isValidGuestKey,
 } from "../src/mmo/oauth.js";
-import { oauthPublicConfig, readOAuthSecrets } from "../src/mmo/oauthConfig.js";
+import { oauthPublicConfig, readOAuthSecrets, resolveOAuthRedirect } from "../src/mmo/oauthConfig.js";
 import { BRAND } from "../src/shared/branding.js";
 import { getShardId } from "../src/persist/worldPersistence.js";
 import {
@@ -259,8 +259,11 @@ async function handleOAuthGitHub(req: http.IncomingMessage, res: http.ServerResp
   }
   const body = await readBody(req);
   let code: string;
+  let redirectUri: string | undefined;
   try {
-    code = (JSON.parse(body) as { code?: string }).code ?? "";
+    const parsed = JSON.parse(body) as { code?: string; redirectUri?: string };
+    code = parsed.code ?? "";
+    redirectUri = parsed.redirectUri;
   } catch {
     sendJson(req, res, 400, { error: "invalid_json" });
     return;
@@ -274,7 +277,10 @@ async function handleOAuthGitHub(req: http.IncomingMessage, res: http.ServerResp
   const redis = getRedis();
   const secrets = readOAuthSecrets();
   try {
-    const result = await exchangeGitHubCode(pool, secrets, code, p => createSession(redis, p));
+    const resolvedRedirect = resolveOAuthRedirect("github", redirectUri);
+    const result = await exchangeGitHubCode(
+      pool, secrets, code, p => createSession(redis, p), resolvedRedirect,
+    );
     const profile = await findProfileById(pool, result.profile.id);
     if (profile) await syncProfileRanking(redis, profile);
     sendJson(req, res, 200, result);
@@ -297,10 +303,12 @@ async function handleOAuthX(req: http.IncomingMessage, res: http.ServerResponse)
   const body = await readBody(req);
   let code: string;
   let codeVerifier: string;
+  let redirectUri: string | undefined;
   try {
-    const parsed = JSON.parse(body) as { code?: string; codeVerifier?: string };
+    const parsed = JSON.parse(body) as { code?: string; codeVerifier?: string; redirectUri?: string };
     code = parsed.code ?? "";
     codeVerifier = parsed.codeVerifier ?? "";
+    redirectUri = parsed.redirectUri;
   } catch {
     sendJson(req, res, 400, { error: "invalid_json" });
     return;
@@ -314,7 +322,10 @@ async function handleOAuthX(req: http.IncomingMessage, res: http.ServerResponse)
   const redis = getRedis();
   const secrets = readOAuthSecrets();
   try {
-    const result = await exchangeXCode(pool, secrets, code, codeVerifier, p => createSession(redis, p));
+    const resolvedRedirect = resolveOAuthRedirect("x", redirectUri);
+    const result = await exchangeXCode(
+      pool, secrets, code, codeVerifier, p => createSession(redis, p), resolvedRedirect,
+    );
     const profile = await findProfileById(pool, result.profile.id);
     if (profile) await syncProfileRanking(redis, profile);
     sendJson(req, res, 200, result);
@@ -326,6 +337,10 @@ async function handleOAuthX(req: http.IncomingMessage, res: http.ServerResponse)
     }
     if (msg === "missing_code_verifier") {
       sendJson(req, res, 400, { error: msg, message: "Falta code_verifier (PKCE)." });
+      return;
+    }
+    if (msg === "invalid_redirect_uri") {
+      sendJson(req, res, 400, { error: msg, message: "Redirect URI no permitida. Registrala en la app de X/GitHub." });
       return;
     }
     console.error("[oauth/x]", err);

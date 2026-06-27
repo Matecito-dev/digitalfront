@@ -6,3 +6,5 @@ app-www/
 .env
 .env.local
 web/
+.vercel
+.env*

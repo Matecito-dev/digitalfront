@@ -8,6 +8,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const VIEWER = join(ROOT, 'viewer');
 const OUT = join(ROOT, 'web');
 
+const versionInfo = JSON.parse(await readFile(join(ROOT, 'version.json'), 'utf8'));
+
 const apiBase = (process.env.DF_API_URL ?? process.env.VELIS_API_URL ?? 'https://api.gamedevforge.com').replace(/\/$/, '');
 const siteUrl = (process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`
@@ -43,6 +45,7 @@ const dfOAuth = {
 const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
+  'version.js',
   'terrain-tactics.js',
   'tactical-orders.js',
   'path-worker.js',
@@ -103,6 +106,16 @@ window.DF_OAUTH = ${JSON.stringify(dfOAuth)};
 window.VELIS_CONFIG = window.DF_CONFIG;
 `;
 await writeFile(join(OUT, 'config.js'), configJs);
+
+const versionJs = `/** Generado por build:web — version.json */
+window.DF_GAME_VERSION = ${JSON.stringify(String(versionInfo.version ?? '0.0.0'))};
+window.DF_GAME_VERSION_INFO = ${JSON.stringify({
+  version: String(versionInfo.version ?? '0.0.0'),
+  title: String(versionInfo.title ?? ''),
+  changelog: Array.isArray(versionInfo.changelog) ? versionInfo.changelog : [],
+})};
+`;
+await writeFile(join(OUT, 'version.js'), versionJs);
 
 await writeFile(
   join(OUT, 'README.txt'),

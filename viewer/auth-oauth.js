@@ -3,6 +3,9 @@
   const DF_SESSION_KEY = "df_session";
   const DF_GUEST_KEY = "df_guest_key";
   const X_PKCE_KEY = "df_x_pkce_verifier";
+  const X_REDIRECT_KEY = "df_x_redirect_uri";
+  const OAUTH_STATE_KEY = "df_oauth_state";
+  const PKCE_TTL_MS = 15 * 60 * 1000;
   const GITHUB_CALLBACK = "/auth/github/callback";
   const X_CALLBACK = "/auth/x/callback";
 
@@ -10,8 +13,17 @@
 
   function getApiUrl(path) {
     if (typeof window.apiUrl === "function") return window.apiUrl(path);
-    const base = (window.DF_CONFIG?.apiBase || "").replace(/\/$/, "");
     const p = path.startsWith("/") ? path : `/${path}`;
+    const configured = (window.DF_CONFIG?.apiBase || "").replace(/\/$/, "");
+    const origin = window.location.origin?.replace(/\/$/, "") || "";
+    const stored = (localStorage.getItem("df_api_base") || "").replace(/\/$/, "");
+    const isNative = window.Capacitor?.isNativePlatform?.() === true;
+    let base;
+    if (!isNative) {
+      base = configured || (stored && stored !== origin ? stored : origin);
+    } else {
+      base = stored || configured || origin;
+    }
     return base ? base + p : p;
   }
 
@@ -28,8 +40,15 @@
         ? apiEntry.clientId
         : null;
     const redirectUri = bakedEntry?.redirectUri || apiEntry?.redirectUri || null;
-    if (!clientId || !redirectUri || isPlaceholder(clientId)) return null;
+    if (!clientId || isPlaceholder(clientId)) return null;
     return { clientId, redirectUri };
+  }
+
+  /** Redirect del dominio actual (evita perder PKCE entre vercel.app y play.*). */
+  function currentRedirectUri(callbackPath, fallback) {
+    const origin = window.location.origin?.replace(/\/$/, "");
+    if (origin) return `${origin}${callbackPath}`;
+    return fallback || null;
   }
 
   function saveDfSession(token, profile, guestKey) {
@@ -53,6 +72,33 @@
 
   function clearDfSession() {
     localStorage.removeItem(DF_SESSION_KEY);
+  }
+
+  function storePkceVerifier(verifier, redirectUri) {
+    localStorage.setItem(X_PKCE_KEY, JSON.stringify({ v: verifier, t: Date.now() }));
+    if (redirectUri) localStorage.setItem(X_REDIRECT_KEY, redirectUri);
+  }
+
+  function loadPkceVerifier() {
+    const raw = localStorage.getItem(X_PKCE_KEY);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.v && Date.now() - (parsed.t ?? 0) < PKCE_TTL_MS) return parsed.v;
+      return null;
+    } catch {
+      return raw.length >= 32 ? raw : null;
+    }
+  }
+
+  function loadStoredRedirectUri() {
+    return localStorage.getItem(X_REDIRECT_KEY) || null;
+  }
+
+  function clearPkceStorage() {
+    localStorage.removeItem(X_PKCE_KEY);
+    localStorage.removeItem(X_REDIRECT_KEY);
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
   }
 
   async function fetchProviders() {
@@ -86,14 +132,15 @@
   async function loginWithGitHub() {
     const providers = await fetchProviders();
     const gh = providers?.github;
-    if (!gh?.clientId || !gh?.redirectUri) {
+    if (!gh?.clientId) {
       throw new Error("GitHub OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
+    const redirectUri = currentRedirectUri(GITHUB_CALLBACK, gh.redirectUri);
     const state = randomString(16);
-    sessionStorage.setItem("df_oauth_state", state);
+    sessionStorage.setItem(OAUTH_STATE_KEY, state);
     const params = new URLSearchParams({
       client_id: gh.clientId,
-      redirect_uri: gh.redirectUri,
+      redirect_uri: redirectUri,
       scope: "read:user",
       state,
     });
@@ -103,18 +150,19 @@
   async function loginWithX() {
     const providers = await fetchProviders();
     const x = providers?.x;
-    if (!x?.clientId || !x?.redirectUri) {
+    if (!x?.clientId) {
       throw new Error("X OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
+    const redirectUri = currentRedirectUri(X_CALLBACK, x.redirectUri);
     const verifier = randomString(32);
-    sessionStorage.setItem(X_PKCE_KEY, verifier);
+    storePkceVerifier(verifier, redirectUri);
     const challenge = await sha256Base64Url(verifier);
     const state = randomString(16);
-    sessionStorage.setItem("df_oauth_state", state);
+    sessionStorage.setItem(OAUTH_STATE_KEY, state);
     const params = new URLSearchParams({
       response_type: "code",
       client_id: x.clientId,
-      redirect_uri: x.redirectUri,
+      redirect_uri: redirectUri,
       scope: "tweet.read users.read offline.access",
       state,
       code_challenge: challenge,
@@ -129,10 +177,22 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await r.json().catch(() => ({}));
+    const raw = await r.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      const hint = raw.trimStart().startsWith("<")
+        ? " La petición llegó al frontend en vez del API — recarga sin caché (Ctrl+Shift+R)."
+        : "";
+      throw new Error(`Respuesta inválida del servidor.${hint}`);
+    }
     if (!r.ok) {
-      const msg = data.message || data.error || "OAuth falló";
+      const msg = data.message || data.error_description || data.error || "OAuth falló";
       throw new Error(msg);
+    }
+    if (!data.token || !data.profile) {
+      throw new Error("Respuesta OAuth inválida del servidor.");
     }
     return data;
   }
@@ -185,6 +245,11 @@
     history.replaceState(null, "", u.pathname + u.hash);
   }
 
+  function isOAuthCallbackPath() {
+    const path = location.pathname.replace(/\/$/, "");
+    return path === GITHUB_CALLBACK || path === X_CALLBACK;
+  }
+
   async function handleOAuthCallback() {
     const path = location.pathname.replace(/\/$/, "");
     if (path !== GITHUB_CALLBACK && path !== X_CALLBACK) return false;
@@ -194,19 +259,34 @@
     const err = params.get("error");
     if (err) {
       cleanOAuthUrl();
+      clearPkceStorage();
       throw new Error(params.get("error_description") || err);
     }
     if (!code) return false;
 
+    const savedState = sessionStorage.getItem(OAUTH_STATE_KEY);
+    const returnedState = params.get("state");
+    if (savedState && returnedState && savedState !== returnedState) {
+      cleanOAuthUrl();
+      clearPkceStorage();
+      throw new Error("Sesión OAuth expirada. Volvé a intentar iniciar sesión.");
+    }
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
+
     let data;
     if (path === GITHUB_CALLBACK) {
-      data = await exchangeOAuth("/api/auth/oauth/github", { code });
+      const redirectUri = currentRedirectUri(GITHUB_CALLBACK, null);
+      data = await exchangeOAuth("/api/auth/oauth/github", { code, redirectUri });
     } else {
-      const codeVerifier = sessionStorage.getItem(X_PKCE_KEY);
-      sessionStorage.removeItem(X_PKCE_KEY);
-      data = await exchangeOAuth("/api/auth/oauth/x", { code, codeVerifier });
+      const codeVerifier = loadPkceVerifier();
+      const redirectUri = loadStoredRedirectUri() || currentRedirectUri(X_CALLBACK, null);
+      if (!codeVerifier) {
+        cleanOAuthUrl();
+        throw new Error("Faltan datos de X (PKCE). Volvé a pulsar «Continuar con X».");
+      }
+      data = await exchangeOAuth("/api/auth/oauth/x", { code, codeVerifier, redirectUri });
     }
-    sessionStorage.removeItem("df_oauth_state");
+    clearPkceStorage();
     saveDfSession(data.token, data.profile);
     cleanOAuthUrl();
     return data;
@@ -215,7 +295,7 @@
   async function tryRestoreDfSession() {
     try {
       const oauth = await handleOAuthCallback();
-      if (oauth) return oauth;
+      if (oauth?.token && oauth?.profile) return oauth;
     } catch (e) {
       return { error: e.message || "OAuth falló" };
     }
@@ -276,5 +356,6 @@
     tryRestoreDfSession,
     validateDfSession,
     refreshOAuthButtons,
+    isOAuthCallbackPath,
   };
 })();

@@ -148,17 +148,30 @@ export function countBandsInNearPlayerRing(state: WorldState, px: number, py: nu
 }
 
 /** Player with fewest bands in near-player ring (for replenish bias). */
-export function findUnderServedPlayer(state: WorldState): { x: number; y: number } | null {
-  const players = alivePlayerCentroids(state);
-  if (!players.length) return null;
-  let best = players[0];
-  let bestCount = countBandsInNearPlayerRing(state, best.x, best.y);
-  for (let i = 1; i < players.length; i++) {
-    const p = players[i];
-    const c = countBandsInNearPlayerRing(state, p.x, p.y);
-    if (c < bestCount) { bestCount = c; best = p; }
+export function findUnderServedPlayer(
+  state: WorldState,
+): { x: number; y: number; profileId: string } | null {
+  let bestProfileId: string | null = null;
+  let best: { x: number; y: number } | null = null;
+  let bestCount = Infinity;
+
+  for (const [profileId, squad] of state.playerSquads) {
+    const alive = squad.units.filter(u => u.hp > 0);
+    if (!alive.length || squad.wiped) continue;
+    let cx = 0, cy = 0;
+    for (const u of alive) { cx += u.x; cy += u.y; }
+    cx /= alive.length;
+    cy /= alive.length;
+    const c = countBandsInNearPlayerRing(state, cx, cy);
+    if (c < bestCount) {
+      bestCount = c;
+      best = { x: cx, y: cy };
+      bestProfileId = profileId;
+    }
   }
-  return bestCount < NEAR_PLAYER_AOI_QUOTA ? best : null;
+
+  if (!best || !bestProfileId || bestCount >= NEAR_PLAYER_AOI_QUOTA) return null;
+  return { ...best, profileId: bestProfileId };
 }
 
 /** Spawn in ring 12–45 cells from nearest living player to the candidate. */

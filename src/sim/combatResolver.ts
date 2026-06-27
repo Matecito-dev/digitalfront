@@ -244,8 +244,13 @@ export function tickGroupIntensityDecay(
 }
 
 export function isGroupResolvedByPlayerCombat(state: WorldState, groupId: string): boolean {
+  const grid = getTerrainNavGrid(state.terrain);
   for (const squad of state.playerSquads.values()) {
     if (squad.attackGroupId === groupId) return true;
+    if (squad.unitOrder === "fire_hold" || squad.order === "fire_hold") {
+      const target = findFireHoldTargetGroup(squad, state, grid);
+      if (target?.group.id === groupId) return true;
+    }
   }
   return false;
 }
