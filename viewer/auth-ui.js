@@ -1,25 +1,8 @@
 /** Login / sesión sin Phaser — corre al cargar la página. */
 (function () {
-  var dfAuthToken = null;
-  var dfProfile = null;
-  var gameStarted = false;
-
-  window.dfAuthToken = null;
-  window.dfProfile = null;
-  window.gameStarted = false;
-
-  Object.defineProperty(window, "dfAuthToken", {
-    get: function () { return dfAuthToken; },
-    set: function (v) { dfAuthToken = v; },
-  });
-  Object.defineProperty(window, "dfProfile", {
-    get: function () { return dfProfile; },
-    set: function (v) { dfProfile = v; },
-  });
-  Object.defineProperty(window, "gameStarted", {
-    get: function () { return gameStarted; },
-    set: function (v) { gameStarted = v; },
-  });
+  window.dfAuthToken = window.dfAuthToken ?? null;
+  window.dfProfile = window.dfProfile ?? null;
+  window.gameStarted = window.gameStarted ?? false;
 
   var AUTH_PROVIDER_LABELS = {
     github: "Conectado con GitHub",
@@ -34,9 +17,9 @@
   function updateCaptainHud() {
     var el = document.getElementById("captain-lbl");
     if (!el) return;
-    var name = dfProfile?.captainName ?? dfProfile?.username ?? "—";
+    var name = window.dfProfile?.captainName ?? window.dfProfile?.username ?? "—";
     el.replaceChildren();
-    var avatarUrl = dfProfile?.avatarUrl;
+    var avatarUrl = window.dfProfile?.avatarUrl;
     if (avatarUrl) {
       var img = document.createElement("img");
       img.id = "captain-avatar";
@@ -51,8 +34,8 @@
   }
 
   function saveDfSession(token, profile) {
-    dfAuthToken = token;
-    dfProfile = profile;
+    window.dfAuthToken = token;
+    window.dfProfile = profile;
     window.DfAuth?.saveDfSession(token, profile);
     updateCaptainHud();
   }
@@ -119,8 +102,8 @@
 
   function showSessionPanel(profile) {
     if (window.__DF_EARLY_SESSION_UI) {
-      dfAuthToken = window.DfAuth?.loadDfSession?.()?.token ?? dfAuthToken;
-      dfProfile = profile;
+      window.dfAuthToken = window.DfAuth?.loadDfSession?.()?.token ?? window.dfAuthToken;
+      window.dfProfile = profile;
       updateCaptainHud();
       return;
     }
@@ -149,11 +132,11 @@
 
   function logoutSession() {
     window.DfAuth?.clearDfSession();
-    dfAuthToken = null;
-    dfProfile = null;
+    window.dfAuthToken = null;
+    window.dfProfile = null;
     sessionStorage.removeItem("df_oauth_fresh");
     sessionStorage.removeItem("df_oauth_pending");
-    if (gameStarted) {
+    if (window.gameStarted) {
       location.reload();
       return;
     }

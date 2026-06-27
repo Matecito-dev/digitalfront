@@ -5306,7 +5306,7 @@ if (!window.__dfResizeBound) {
 }
 
 // ── Minimap click ─────────────────────────────────────────────────────────────
-document.getElementById("minimap-wrap").addEventListener("click", e => {
+document.getElementById("minimap-wrap")?.addEventListener("click", e => {
   const mm   = document.getElementById("mm-canvas");
   const rect = mm.getBoundingClientRect();
   const px   = (e.clientX - rect.left) / mm.clientWidth;

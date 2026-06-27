@@ -1,12 +1,11 @@
 {
-  "version": "0.0.13",
-  "title": "Carga con barra de progreso",
+  "version": "0.0.14",
+  "title": "Fix carga del juego",
   "changelog": [
+    "Corregida la carga de game-core.js (ya no se inyecta como script inline gigante).",
+    "Sesión OAuth sincronizada antes de entrar al mundo — evita «Sesión no encontrada».",
+    "Errores de carga con mensaje concreto en el panel de comandante.",
     "Pantalla de carga con fondo del juego y barra de progreso real al entrar al mundo.",
-    "Phaser y el núcleo del juego se cargan solo cuando pulsás «Entrar al mundo» (login más rápido).",
-    "Errores de carga con mensaje concreto en lugar de quedarse en «Cargando motor…».",
-    "«Entrar al mundo» ya no queda colgado en Cargando motor del juego.",
-    "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
-    "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend)."
+    "Phaser y el núcleo del juego se cargan solo al pulsar «Entrar al mundo»."
   ]
 }

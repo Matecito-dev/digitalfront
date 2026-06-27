@@ -9,6 +9,7 @@ const VIEWER = join(ROOT, 'viewer');
 const OUT = join(ROOT, 'web');
 
 const versionInfo = JSON.parse(await readFile(join(ROOT, 'version.json'), 'utf8'));
+const cacheV = encodeURIComponent(String(versionInfo.version ?? '0'));
 
 const apiBase = (process.env.DF_API_URL ?? process.env.VELIS_API_URL ?? 'https://api.gamedevforge.com').replace(/\/$/, '');
 const siteUrl = (process.env.VERCEL_URL
@@ -82,11 +83,14 @@ html = html
   .replace(/src="\/tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="config\.js"/g, 'src="./config.js"')
   .replace(/src="branding\.js"/g, 'src="./branding.js"')
-  .replace(/src="auth-oauth\.js"/g, 'src="./auth-oauth.js"')
-  .replace(/src="auth-ui\.js"/g, 'src="./auth-ui.js"')
-  .replace(/src="game-loader\.js"/g, 'src="./game-loader.js"')
+  .replace(/src="session-boot\.js"/g, `src="./session-boot.js?v=${cacheV}"`)
+  .replace(/src="auth-ui\.js"/g, `src="./auth-ui.js?v=${cacheV}"`)
+  .replace(/src="game-loader\.js"/g, `src="./game-loader.js?v=${cacheV}"`)
+  .replace(/src="auth-oauth\.js"/g, `src="./auth-oauth.js?v=${cacheV}"`)
+  .replace(/src="\.\/session-boot\.js(\?[^"']*)?"/g, `src="./session-boot.js?v=${cacheV}"`)
+  .replace(/src="\.\/auth-ui\.js(\?[^"']*)?"/g, `src="./auth-ui.js?v=${cacheV}"`)
+  .replace(/src="\.\/game-loader\.js(\?[^"']*)?"/g, `src="./game-loader.js?v=${cacheV}"`)
   .replace(/src="game-core\.js"/g, 'src="./game-core.js"')
-  .replace(/src="session-boot\.js"/g, 'src="./session-boot.js"')
   .replace(/src="terrain-tactics\.js"/g, 'src="./terrain-tactics.js"')
   .replace(/src="tactical-orders\.js"/g, 'src="./tactical-orders.js"')
   .replace(/src="capacitor-init\.js"/g, 'src="./capacitor-init.js"')

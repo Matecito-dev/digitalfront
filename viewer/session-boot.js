@@ -88,18 +88,30 @@
     if (btn) btn.disabled = busy;
   }
 
+  function formatError(err) {
+    if (!err) return "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.";
+    if (typeof err === "string" && err.trim()) return err.trim();
+    if (err.message && String(err.message).trim()) return String(err.message).trim();
+    return "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.";
+  }
+
   async function tryEnterWorld() {
     setEnterButtonBusy(true);
+    const boot = document.getElementById("login-boot-status");
+    if (boot) {
+      boot.style.display = "block";
+      boot.textContent = "Preparando el frente…";
+    }
     try {
       if (typeof window.DfLoadAndStartGame !== "function") {
-        throw new Error("Cargador del juego no disponible.");
+        throw new Error("Cargador del juego no disponible. Recargá con Ctrl+Shift+R.");
       }
       await window.DfLoadAndStartGame();
+      if (boot) boot.style.display = "none";
     } catch (err) {
-      const boot = document.getElementById("login-boot-status");
       if (boot) {
         boot.style.display = "block";
-        boot.textContent = err?.message || "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.";
+        boot.textContent = formatError(err);
       }
     } finally {
       setEnterButtonBusy(false);

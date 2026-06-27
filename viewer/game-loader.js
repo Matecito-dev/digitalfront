@@ -13,14 +13,24 @@
   var loadPromise = null;
   var scriptsLoaded = false;
 
+  function formatError(err, fallback) {
+    if (!err) return fallback;
+    if (typeof err === "string" && err.trim()) return err.trim();
+    if (err.message && String(err.message).trim()) return String(err.message).trim();
+    return fallback;
+  }
+
   function totalWeight() {
     return STEPS.reduce(function (a, s) { return a + (s.weight || 1); }, 0);
   }
 
   function resolveSrc(src) {
     if (src.startsWith("http") || src.startsWith("/")) return src;
-    var base = document.baseURI.replace(/[^/]*$/, "");
-    return base + src;
+    try {
+      return new URL(src, document.baseURI || location.href).href;
+    } catch {
+      return src;
+    }
   }
 
   function ensureLoadScreen() {
@@ -39,6 +49,10 @@
     return el;
   }
 
+  function hideLoadScreen() {
+    document.getElementById("game-load-screen")?.classList.remove("visible");
+  }
+
   function setProgress(pct, label) {
     var clamped = Math.max(0, Math.min(100, Math.round(pct)));
     var fill = document.getElementById("game-load-bar-fill");
@@ -49,22 +63,39 @@
     if (labelEl && label) labelEl.textContent = label;
   }
 
-  function loadScriptClassic(src) {
+  function showSessionLoadError(message) {
+    var boot = document.getElementById("login-boot-status");
+    var session = document.getElementById("login-session");
+    var overlay = document.getElementById("login-overlay");
+    if (overlay) overlay.classList.remove("hidden");
+    if (session) session.classList.remove("hidden");
+    if (boot) {
+      boot.style.display = "block";
+      boot.textContent = message;
+    }
+  }
+
+  function loadScriptFromUrl(url, srcKey) {
     return new Promise(function (resolve, reject) {
-      if (document.querySelector('script[data-df-src="' + src + '"]')) {
+      if (document.querySelector('script[data-df-src="' + srcKey + '"]')) {
         resolve();
         return;
       }
       var s = document.createElement("script");
-      s.src = resolveSrc(src);
+      s.src = url;
       s.async = false;
-      s.dataset.dfSrc = src;
+      s.dataset.dfSrc = srcKey;
       s.onload = function () { resolve(); };
-      s.onerror = function () { reject(new Error("No se pudo cargar " + src)); };
+      s.onerror = function () { reject(new Error("No se pudo cargar " + srcKey)); };
       document.head.appendChild(s);
     });
   }
 
+  function loadScriptClassic(src) {
+    return loadScriptFromUrl(resolveSrc(src), src);
+  }
+
+  /** Descarga con progreso real y ejecuta vía blob: (evita scripts inline gigantes). */
   function loadScriptWithProgress(src, onFraction) {
     var url = resolveSrc(src);
     if (document.querySelector('script[data-df-src="' + src + '"]')) {
@@ -75,8 +106,8 @@
       if (!res.ok) throw new Error("HTTP " + res.status + " al cargar " + src);
       var len = Number(res.headers.get("content-length") || 0);
       if (!res.body || !len) {
-        return res.text().then(function (code) {
-          return injectScript(src, code);
+        return res.blob().then(function (blob) {
+          return runBlobScript(src, blob, function () { onFraction(1); });
         });
       }
       var reader = res.body.getReader();
@@ -86,9 +117,7 @@
         return reader.read().then(function (result) {
           if (result.done) {
             var blob = new Blob(chunks, { type: "application/javascript" });
-            return blob.text().then(function (code) {
-              return injectScript(src, code);
-            });
+            return runBlobScript(src, blob, function (frac) { onFraction(frac); });
           }
           chunks.push(result.value);
           received += result.value.length;
@@ -100,20 +129,36 @@
     });
   }
 
-  function injectScript(src, code) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.dataset.dfSrc = src;
-      s.text = code;
-      s.onerror = function () { reject(new Error("Error al ejecutar " + src)); };
-      document.head.appendChild(s);
-      resolve();
+  function runBlobScript(srcKey, blob, onDone) {
+    onDone(1);
+    var blobUrl = URL.createObjectURL(blob);
+    return loadScriptFromUrl(blobUrl, srcKey).then(function () {
+      URL.revokeObjectURL(blobUrl);
+    }).catch(function (err) {
+      URL.revokeObjectURL(blobUrl);
+      throw err;
     });
   }
 
   function reportProgress(doneWeight, stepWeight, stepFrac, label) {
     var pct = ((doneWeight + stepWeight * stepFrac) / totalWeight()) * 100;
     setProgress(pct, label);
+  }
+
+  function ensureAuthSession() {
+    if (window.dfAuthToken) return true;
+    var stored = window.DfAuth?.loadDfSession?.();
+    if (stored?.token && stored?.profile) {
+      if (typeof window.saveDfSession === "function") {
+        window.saveDfSession(stored.token, stored.profile);
+      } else {
+        window.dfAuthToken = stored.token;
+        window.dfProfile = stored.profile;
+        window.DfAuth?.saveDfSession?.(stored.token, stored.profile);
+      }
+      return true;
+    }
+    return false;
   }
 
   async function loadAllScripts() {
@@ -142,7 +187,7 @@
       (function tick() {
         if (window.__DF_GAME_BOOT_OK) return resolve();
         if (window.__DF_GAME_BOOT_ERR) {
-          return reject(new Error(window.__DF_GAME_BOOT_ERR));
+          return reject(new Error(String(window.__DF_GAME_BOOT_ERR)));
         }
         if (Date.now() - start > timeoutMs) {
           return reject(new Error("Tiempo de espera agotado al iniciar el mundo."));
@@ -153,18 +198,27 @@
   }
 
   window.DfLoadAndStartGame = async function DfLoadAndStartGame() {
-    if (window.__DF_GAME_BOOT_OK) return;
+    if (window.__DF_GAME_BOOT_OK) {
+      hideLoadScreen();
+      return;
+    }
     if (loadPromise) return loadPromise;
 
     loadPromise = (async function () {
       var screen = ensureLoadScreen();
+      screen.classList.remove("error");
       screen.classList.add("visible");
       setProgress(0, "Preparando recursos…");
 
       try {
+        if (!ensureAuthSession()) {
+          throw new Error("Sesión no encontrada. Volvé a iniciar sesión.");
+        }
+
         if (typeof window.__dfStartGameAfterAuth !== "function") {
           await loadAllScripts();
         }
+
         setProgress(95, "Entrando al mapa…");
         window.__DF_GAME_BOOT_ERR = null;
         window.__DF_GAME_BOOT_OK = false;
@@ -176,15 +230,14 @@
         window.__dfStartGameAfterAuth();
         await waitForGameBoot(120000);
         setProgress(100, "¡Listo!");
-        screen.classList.remove("visible");
+        hideLoadScreen();
       } catch (err) {
-        setProgress(0, err.message || "Error desconocido");
+        var msg = formatError(err, "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.");
+        setProgress(0, msg);
         screen.classList.add("error");
-        if (typeof window.showLoginOverlay === "function") {
-          window.showLoginOverlay(err.message || "No se pudo cargar el juego.");
-        }
+        showSessionLoadError(msg);
         loadPromise = null;
-        throw err;
+        throw new Error(msg);
       }
     })();
 
