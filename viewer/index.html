@@ -330,43 +330,150 @@ button.sec:hover { background: #30363d; }
 #login-overlay {
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
+  padding: 16px;
   background:
-    linear-gradient(180deg, #050810cc 0%, #050810ee 45%, #0d1117f5 100%),
+    linear-gradient(135deg, #050810e8 0%, #0d1117f0 50%, #050810ee 100%),
     image-set(url('./assets/dgbg.webp') type('image/webp'), url('./assets/dgbg.jpg') type('image/jpeg')) center/cover no-repeat,
-    url('./assets/dgbg.jpg') center/cover no-repeat,
-    url('./assets/menu-bg.jpg') center/cover no-repeat;
+    url('./assets/dgbg.jpg') center/cover no-repeat;
   background-color: #050810;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   pointer-events: auto;
+  overflow-y: auto;
 }
 #login-overlay.hidden { display: none; }
+#login-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 20px;
+  width: min(920px, 96vw);
+  align-items: stretch;
+}
+@media (max-width: 780px) {
+  #login-shell { grid-template-columns: 1fr; max-width: 420px; }
+  #login-hero { order: 2; }
+  #login-box { order: 1; }
+}
+#login-hero {
+  background: linear-gradient(160deg, #161b22f2 0%, #0d1117f5 100%);
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 24px 22px;
+  box-shadow: 0 16px 48px #00000066;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#login-hero-logo {
+  display: block;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 4px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px #58a6ff55);
+}
+#login-hero h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: #e6edf3;
+  line-height: 1.15;
+}
+#login-hero-tagline {
+  font-size: 13px;
+  color: #8b949e;
+  text-align: center;
+  line-height: 1.55;
+  margin: 0;
+}
+#login-hero-banner {
+  width: 100%;
+  max-height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  opacity: 0.92;
+}
+.login-version-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.login-version-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #58a6ff;
+  background: #58a6ff18;
+  border: 1px solid #58a6ff55;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.login-version-label {
+  font-size: 11px;
+  color: #6e7681;
+}
+#login-changelog {
+  background: #0d1117cc;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: auto;
+}
+#login-changelog h3 {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  margin: 0 0 8px;
+}
+#login-changelog ul {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 11px;
+  color: #c9d1d9;
+  line-height: 1.55;
+}
+#login-changelog li { margin-bottom: 5px; }
+#login-changelog li:last-child { margin-bottom: 0; }
 #login-box button, #settings-overlay button {
   touch-action: manipulation;
   cursor: pointer;
   min-height: 44px;
 }
 #login-box {
-  background: #161b22; border: 1px solid #30363d; border-radius: 10px;
-  padding: 22px 24px; width: min(360px, 92vw);
-  box-shadow: 0 12px 40px #000000aa;
+  background: #161b22f5;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 16px 48px #00000088;
+  display: flex;
+  flex-direction: column;
 }
 #login-box h2 {
-  font-size: 16px; font-weight: 700; color: #58a6ff; margin-bottom: 4px;
+  font-size: 15px; font-weight: 700; color: #58a6ff; margin-bottom: 6px;
 }
 #login-box p {
-  font-size: 11px; color: #8b949e; line-height: 1.55; margin-bottom: 14px;
+  font-size: 11px; color: #8b949e; line-height: 1.55; margin-bottom: 12px;
 }
 #login-box label {
   display: block; font-size: 10px; color: #8b949e; margin-bottom: 4px;
 }
 #login-username {
-  width: 100%; padding: 8px 10px; font-size: 13px; margin-bottom: 8px;
+  width: 100%; padding: 10px 12px; font-size: 13px; margin-bottom: 8px;
+  border-radius: 8px;
 }
 #login-error {
   min-height: 16px; font-size: 10px; color: #f85149; margin-bottom: 8px;
 }
 #login-submit {
-  width: 100%; padding: 8px 12px; font-size: 12px;
+  width: 100%; padding: 10px 12px; font-size: 13px; font-weight: 600;
+  border-radius: 8px;
 }
 #captain-lbl {
   font-size: 10px; color: #3ddc84; font-weight: 600;
@@ -412,38 +519,37 @@ body.mobile-play #connection-dot { display: inline-block; }
 #connection-dot.connected { background: #3fb950; box-shadow: 0 0 6px #3fb95088; }
 
 #login-tagline {
-  font-size: 13px; color: #e6edf3; font-weight: 600; margin-bottom: 6px; text-align: center;
+  font-size: 12px; color: #c9d1d9; font-weight: 500; margin-bottom: 10px;
 }
 #login-links {
-  display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
 }
 #login-links a, #login-links button.linkish {
-  display: block; text-align: center; font-size: 11px; padding: 8px 10px;
-  border-radius: 6px; text-decoration: none; color: #58a6ff;
+  display: block; text-align: center; font-size: 11px; padding: 9px 10px;
+  border-radius: 8px; text-decoration: none; color: #58a6ff;
   background: #21262d; border: 1px solid #30363d; cursor: pointer;
 }
 #login-links a:hover, #login-links button.linkish:hover { background: #30363d; }
 #login-divider {
-  text-align: center; font-size: 9px; color: #6e7681; margin: 10px 0;
-}
-#login-logo {
-  display: block; max-width: 180px; height: auto; margin: 0 auto 10px;
-}
-#login-banner {
-  display: block; width: 100%; max-height: 72px; object-fit: contain;
-  margin-bottom: 12px; border-radius: 6px;
+  text-align: center; font-size: 9px; color: #6e7681; margin: 12px 0 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 #login-oauth {
-  display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;
 }
 #login-oauth button {
-  width: 100%; padding: 9px 12px; font-size: 12px;
+  width: 100%; padding: 10px 12px; font-size: 12px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 8px;
 }
-#login-oauth .oauth-github { background: #24292f; border: 1px solid #30363d; }
-#login-oauth .oauth-github:hover { background: #30363d; }
-#login-oauth .oauth-x { background: #000; border: 1px solid #30363d; }
-#login-oauth .oauth-x:hover { background: #161616; }
+#login-oauth button:disabled {
+  opacity: 0.45; cursor: not-allowed;
+}
+#login-oauth .oauth-github { background: #24292f; border: 1px solid #30363d; color: #e6edf3; }
+#login-oauth .oauth-github:hover:not(:disabled) { background: #30363d; }
+#login-oauth .oauth-x { background: #000; border: 1px solid #30363d; color: #e6edf3; }
+#login-oauth .oauth-x:hover:not(:disabled) { background: #161616; }
 #ranking-share { width: 100%; margin-top: 4px; font-size: 9px; }
 </style>
 </head>
@@ -468,32 +574,45 @@ body.mobile-play #connection-dot { display: inline-block; }
 </div>
 
 <div id="login-overlay">
-  <div id="login-box">
-    <picture id="login-logo-wrap">
-      <source srcset="./assets/dglogo.webp" type="image/webp">
-      <img id="login-logo" src="./assets/dglogo.png" alt="Digital Front" onerror="this.style.display='none'">
-    </picture>
-    <picture id="login-banner-wrap">
-      <source srcset="./assets/dgbanner.webp" type="image/webp">
-      <img id="login-banner" src="./assets/dgbanner.png" alt="" onerror="this.style.display='none'">
-    </picture>
-    <h2>⚔ Digital Front</h2>
-    <p id="login-tagline">MMORTS táctico en mapa procedural — explora, combate bárbaros, PvP en tiempo real.</p>
-    <div id="login-oauth">
-      <button type="button" class="oauth-github" id="login-github">Continuar con GitHub</button>
-      <button type="button" class="oauth-x" id="login-x">Continuar con X</button>
+  <div id="login-shell">
+    <aside id="login-hero">
+      <img id="login-hero-logo" src="./assets/dglogo.png" width="120" height="120" alt="Digital Front">
+      <h1>Digital Front</h1>
+      <p id="login-hero-tagline">Guerra táctica en un mapa que se genera solo. Explora, pelea y sobrevive en el Valle de Bruma.</p>
+      <img id="login-hero-banner" src="./assets/dgbanner.png" alt="" onerror="this.style.display='none'">
+      <div class="login-version-row">
+        <span class="login-version-badge">v0.0.1</span>
+        <span class="login-version-label">Primer acceso público</span>
+      </div>
+      <section id="login-changelog">
+        <h3>Novedades</h3>
+        <ul>
+          <li>Mapa procedural distinto en cada partida — colinas, ríos y atajos importan.</li>
+          <li>Combate en tiempo real: bárbaros, otros jugadores y refugios para reagruparte.</li>
+          <li>Mové solo las unidades que elijas; no todo el batallón a la vez.</li>
+          <li>Entrá con GitHub o X, o como invitado y retomá tu partida después.</li>
+          <li>Ranking, misiones diarias y progreso que se guarda en el servidor.</li>
+        </ul>
+      </section>
+    </aside>
+    <div id="login-box">
+      <h2>Entrar al frente</h2>
+      <p id="login-tagline">Elegí cómo querés jugar. Tu capitán aparece en el mapa y en el ranking global.</p>
+      <div id="login-oauth">
+        <button type="button" class="oauth-github" id="login-github">Continuar con GitHub</button>
+        <button type="button" class="oauth-x" id="login-x">Continuar con X</button>
+      </div>
+      <div id="login-links">
+        <a href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
+        <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
+      </div>
+      <div id="login-divider">o jugar como invitado</div>
+      <label for="login-username">Nombre del capitán</label>
+      <input type="text" id="login-username" maxlength="20" autocomplete="username" placeholder="Ej. CapitanBruma">
+      <div id="login-error"></div>
+      <button type="button" id="login-submit">Jugar en navegador</button>
+      <button type="button" class="sec" id="login-settings" style="width:100%;margin-top:8px">Ajustes del servidor</button>
     </div>
-    <div id="login-links">
-      <a href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
-      <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
-    </div>
-    <div id="login-divider">— o entrar como invitado —</div>
-    <p>Elige el nombre de tu capitán (3–20 caracteres). Será visible en el mapa y en el ranking.</p>
-    <label for="login-username">Nombre del capitán</label>
-    <input type="text" id="login-username" maxlength="20" autocomplete="username" placeholder="Ej. CapitanBruma">
-    <div id="login-error"></div>
-    <button type="button" id="login-submit">Jugar en navegador</button>
-    <button type="button" class="sec" id="login-settings" style="width:100%;margin-top:8px">Ajustes del servidor</button>
   </div>
 </div>
 
@@ -6455,6 +6574,7 @@ function showLoginOverlay(message) {
   document.getElementById("status").textContent = "Identifícate para entrar al batallón";
   window.DigitalFrontBgm?.init();
   window.DigitalFrontBgm?.playMenu();
+  void window.DfAuth?.refreshOAuthButtons?.();
 }
 
 function hideLoginOverlay() {

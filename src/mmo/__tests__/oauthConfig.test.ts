@@ -21,6 +21,15 @@ describe("oauthConfig", () => {
     expect(secrets.x?.redirectUri).toContain("/auth/x/callback");
   });
 
+  it("readOAuthSecrets ignores placeholder credentials", () => {
+    const secrets = readOAuthSecrets({
+      GITHUB_CLIENT_ID: "your_github_client_id_here",
+      GITHUB_CLIENT_SECRET: "your_github_client_secret_here",
+      GITHUB_REDIRECT_URI: "https://play.example.com/auth/github/callback",
+    });
+    expect(secrets.github).toBeNull();
+  });
+
   it("oauthPublicConfig strips secrets", () => {
     const secrets = readOAuthSecrets({
       GITHUB_CLIENT_ID: "gh-id",

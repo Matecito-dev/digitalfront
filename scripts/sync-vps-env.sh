@@ -34,8 +34,10 @@ for key in "${KEYS[@]}"; do
   [[ -n "${line}" ]] || continue
   val="${line#*=}"
   # No subir placeholders vacíos
-  if [[ "${val}" == *"_here" ]] || [[ -z "${val}" ]]; then
+  if [[ "${val}" == *"_here" ]] || [[ -z "${val}" ]] || [[ "${val}" == your_* ]]; then
     echo "• omitido ${key} (placeholder o vacío)"
+    # Quitar placeholders viejos del VPS para no servir client_id inválidos
+    ssh -o ConnectTimeout=15 "${VPS_HOST}" "sudo sed -i '/^${key}=/d' ${ENV_FILE} 2>/dev/null || true"
     continue
   fi
   printf '%s=%s\n' "${key}" "${val}" >> "${TMP}"

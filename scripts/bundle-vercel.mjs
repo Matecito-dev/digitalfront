@@ -13,6 +13,33 @@ const siteUrl = (process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`
   : (process.env.DF_SITE_URL ?? process.env.VELIS_SITE_URL)?.replace(/\/$/, '') ?? '');
 
+function isOAuthPlaceholder(v) {
+  if (!v) return true;
+  const s = String(v).trim();
+  return s.startsWith('your_') || s.endsWith('_here');
+}
+
+function oauthBuildEntry(clientId, redirectUri, fallbackRedirect) {
+  const id = clientId?.trim();
+  const uri = (redirectUri?.trim() || fallbackRedirect)?.trim();
+  if (isOAuthPlaceholder(id) || !uri) return null;
+  return { clientId: id, redirectUri: uri };
+}
+
+const playBase = (process.env.DF_SITE_URL ?? process.env.VELIS_SITE_URL ?? 'https://play.gamedevforge.com').replace(/\/$/, '');
+const dfOAuth = {
+  github: oauthBuildEntry(
+    process.env.GITHUB_CLIENT_ID,
+    process.env.GITHUB_REDIRECT_URI,
+    `${playBase}/auth/github/callback`,
+  ),
+  x: oauthBuildEntry(
+    process.env.X_CLIENT_ID,
+    process.env.X_REDIRECT_URI,
+    `${playBase}/auth/x/callback`,
+  ),
+};
+
 const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
@@ -72,6 +99,7 @@ window.DF_CONFIG = {
   apiBase: "${apiBase}",
   wsPath: "/api/sim/ws",
 };
+window.DF_OAUTH = ${JSON.stringify(dfOAuth)};
 window.VELIS_CONFIG = window.DF_CONFIG;
 `;
 await writeFile(join(OUT, 'config.js'), configJs);

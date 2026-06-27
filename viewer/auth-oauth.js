@@ -15,6 +15,23 @@
     return base ? base + p : p;
   }
 
+  function isPlaceholder(value) {
+    if (!value || typeof value !== "string") return true;
+    const v = value.trim();
+    return v.startsWith("your_") || v.endsWith("_here");
+  }
+
+  function pickProvider(apiEntry, bakedEntry) {
+    const clientId = !isPlaceholder(bakedEntry?.clientId)
+      ? bakedEntry.clientId
+      : !isPlaceholder(apiEntry?.clientId)
+        ? apiEntry.clientId
+        : null;
+    const redirectUri = bakedEntry?.redirectUri || apiEntry?.redirectUri || null;
+    if (!clientId || !redirectUri || isPlaceholder(clientId)) return null;
+    return { clientId, redirectUri };
+  }
+
   function saveDfSession(token, profile, guestKey) {
     localStorage.setItem(DF_SESSION_KEY, JSON.stringify({ token, profile }));
     if (guestKey) localStorage.setItem(DF_GUEST_KEY, guestKey);
@@ -40,9 +57,16 @@
 
   async function fetchProviders() {
     if (cachedProviders) return cachedProviders;
-    const r = await fetch(getApiUrl("/api/auth/providers"));
-    if (!r.ok) throw new Error("providers_unavailable");
-    cachedProviders = await r.json();
+    let api = {};
+    try {
+      const r = await fetch(getApiUrl("/api/auth/providers"));
+      if (r.ok) api = await r.json();
+    } catch { /* build-time fallback */ }
+    const baked = window.DF_OAUTH || {};
+    cachedProviders = {
+      github: pickProvider(api.github, baked.github),
+      x: pickProvider(api.x, baked.x),
+    };
     return cachedProviders;
   }
 
@@ -63,7 +87,7 @@
     const providers = await fetchProviders();
     const gh = providers?.github;
     if (!gh?.clientId || !gh?.redirectUri) {
-      throw new Error("GitHub OAuth no configurado en el servidor.");
+      throw new Error("GitHub OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
     const state = randomString(16);
     sessionStorage.setItem("df_oauth_state", state);
@@ -80,7 +104,7 @@
     const providers = await fetchProviders();
     const x = providers?.x;
     if (!x?.clientId || !x?.redirectUri) {
-      throw new Error("X OAuth no configurado en el servidor.");
+      throw new Error("X OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
     const verifier = randomString(32);
     sessionStorage.setItem(X_PKCE_KEY, verifier);
@@ -96,7 +120,7 @@
       code_challenge: challenge,
       code_challenge_method: "S256",
     });
-    location.href = `https://twitter.com/i/oauth2/authorize?${params}`;
+    location.href = `https://x.com/i/oauth2/authorize?${params}`;
   }
 
   async function exchangeOAuth(path, body) {
@@ -217,6 +241,26 @@
     return null;
   }
 
+  async function refreshOAuthButtons() {
+    const ghBtn = document.getElementById("login-github");
+    const xBtn = document.getElementById("login-x");
+    if (!ghBtn && !xBtn) return;
+    try {
+      const providers = await fetchProviders();
+      if (ghBtn) {
+        ghBtn.disabled = !providers?.github;
+        ghBtn.title = providers?.github ? "" : "GitHub OAuth no configurado";
+      }
+      if (xBtn) {
+        xBtn.disabled = !providers?.x;
+        xBtn.title = providers?.x ? "" : "X OAuth no configurado";
+      }
+    } catch {
+      if (ghBtn) ghBtn.disabled = true;
+      if (xBtn) xBtn.disabled = true;
+    }
+  }
+
   window.DfAuth = {
     DF_SESSION_KEY,
     DF_GUEST_KEY,
@@ -231,5 +275,6 @@
     handleOAuthCallback,
     tryRestoreDfSession,
     validateDfSession,
+    refreshOAuthButtons,
   };
 })();
