@@ -12,7 +12,6 @@
 
   plugins.App?.addListener?.("backButton", () => {
     const modals = [
-      document.getElementById("settings-overlay"),
       document.getElementById("camp-modal"),
       document.getElementById("death-screen"),
       document.getElementById("confirm-attack"),
@@ -22,7 +21,6 @@
     for (const el of modals) {
       if (el?.classList?.contains("visible") || el?.style?.display === "flex" || el?.classList?.contains("open")) {
         el.classList.remove("visible", "open");
-        if (el.id === "settings-overlay") el.style.display = "none";
         if (el.id === "tutorial-overlay") el.style.display = "none";
         if (el.id === "help-panel") el.style.display = "none";
         if (typeof closeCampModal === "function") closeCampModal();

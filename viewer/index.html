@@ -467,7 +467,7 @@ button.sec:hover { background: #30363d; }
 }
 #login-changelog li { margin-bottom: 5px; }
 #login-changelog li:last-child { margin-bottom: 0; }
-#login-box button, #settings-overlay button {
+#login-box button {
   touch-action: manipulation;
   cursor: pointer;
   min-height: 44px;
@@ -503,6 +503,9 @@ button.sec:hover { background: #30363d; }
 }
 #captain-lbl {
   font-size: 10px; color: #3ddc84; font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 #connection-banner {
@@ -574,6 +577,79 @@ body.mobile-play #connection-dot { display: inline-block; }
 #login-oauth .oauth-x { background: #000; border: 1px solid #30363d; color: #e6edf3; }
 #login-oauth .oauth-x:hover { background: #161616; }
 #login-oauth .oauth-loading { opacity: 0.65; pointer-events: none; }
+#login-auth.hidden, #login-session.hidden { display: none !important; }
+#login-session-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+}
+#login-session-avatar-wrap {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+}
+#login-session-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #30363d;
+  background: #21262d;
+  display: block;
+}
+#login-session-avatar-fallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid #30363d;
+  background: linear-gradient(135deg, #1f6feb 0%, #21262d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  color: #e6edf3;
+}
+#login-session-username {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e6edf3;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+#login-session-provider {
+  font-size: 11px;
+  color: #8b949e;
+}
+#login-session .login-session-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#login-session .login-session-actions button,
+#login-session .login-session-actions a {
+  width: 100%;
+  min-height: 44px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#captain-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #30363d;
+  vertical-align: middle;
+}
 #login-apk-link { display: none !important; }
 #update-banner {
   display: none;
@@ -610,21 +686,6 @@ body.mobile-play #connection-dot { display: inline-block; }
 <!-- Map canvas -->
 <div id="game"></div>
 
-<div id="settings-overlay">
-  <div id="settings-box">
-    <h2>⚙ Servidor del juego</h2>
-    <p>URL del servidor (ej. <code>https://api.gamedevforge.com</code> o Tailscale).</p>
-    <label for="settings-server-url">URL del servidor</label>
-    <input type="url" id="settings-server-url" placeholder="http://100.64.1.2:3333" autocomplete="url">
-    <div id="settings-error"></div>
-    <div id="settings-status"></div>
-    <div id="settings-actions">
-      <button type="button" class="sec" id="settings-test">Probar conexión</button>
-      <button type="button" id="settings-save">Guardar y continuar</button>
-    </div>
-  </div>
-</div>
-
 <div id="login-overlay">
   <div id="login-shell">
     <aside id="login-hero">
@@ -648,22 +709,41 @@ body.mobile-play #connection-dot { display: inline-block; }
       </section>
     </aside>
     <div id="login-box">
-      <h2>Entrar al frente</h2>
-      <p id="login-tagline">Elegí cómo querés jugar. Tu capitán aparece en el mapa y en el ranking global.</p>
-      <div id="login-oauth">
-        <a href="#" class="oauth-github" id="login-github" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('github');}return false;">Continuar con GitHub</a>
-        <a href="#" class="oauth-x" id="login-x" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('x');}return false;">Continuar con X</a>
+      <div id="login-auth">
+        <h2>Entrar al frente</h2>
+        <p id="login-tagline">Elegí cómo querés jugar. Tu capitán aparece en el mapa y en el ranking global.</p>
+        <div id="login-oauth">
+          <a href="#" class="oauth-github" id="login-github" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('github');}return false;">Continuar con GitHub</a>
+          <a href="#" class="oauth-x" id="login-x" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('x');}return false;">Continuar con X</a>
+        </div>
+        <div id="login-links">
+          <a id="login-apk-link" href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
+          <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
+        </div>
+        <div id="login-divider">o jugar como invitado</div>
+        <label for="login-username">Nombre del capitán</label>
+        <input type="text" id="login-username" maxlength="20" autocomplete="username" placeholder="Ej. CapitanBruma">
+        <div id="login-error"></div>
+        <button type="button" id="login-submit">Jugar en navegador</button>
       </div>
-      <div id="login-links">
-        <a id="login-apk-link" href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
-        <button type="button" class="linkish" id="login-ranking-link">🏆 Ver ranking</button>
+      <div id="login-session" class="hidden">
+        <h2>Tu comandante</h2>
+        <p id="login-session-greeting">Sesión iniciada. Entrá al mundo cuando quieras.</p>
+        <div id="login-session-profile">
+          <div id="login-session-avatar-wrap">
+            <img id="login-session-avatar" alt="" width="64" height="64" hidden>
+            <span id="login-session-avatar-fallback" hidden aria-hidden="true"></span>
+          </div>
+          <div>
+            <div id="login-session-username">—</div>
+            <div id="login-session-provider"></div>
+          </div>
+        </div>
+        <div class="login-session-actions">
+          <button type="button" id="login-enter-world">Entrar al mundo</button>
+          <button type="button" class="sec" id="login-logout">Cerrar sesión</button>
+        </div>
       </div>
-      <div id="login-divider">o jugar como invitado</div>
-      <label for="login-username">Nombre del capitán</label>
-      <input type="text" id="login-username" maxlength="20" autocomplete="username" placeholder="Ej. CapitanBruma">
-      <div id="login-error"></div>
-      <button type="button" id="login-submit">Jugar en navegador</button>
-      <button type="button" class="sec" id="login-settings" style="width:100%;margin-top:8px">Ajustes del servidor</button>
     </div>
   </div>
 </div>
@@ -704,7 +784,6 @@ body.mobile-play #connection-dot { display: inline-block; }
   </div>
   <button type="button" id="btn-follow-squad" class="sec" title="Atajo: F">Seguir escuadrón</button>
   <button type="button" id="btn-sfx-mute" class="sec" title="Silenciar sonido">🔊</button>
-  <button type="button" id="btn-settings-hud" class="sec" title="Servidor">⚙</button>
   <span id="status" style="margin-left:auto">Cargando…</span>
   <span id="perf-lbl" style="font-size:9px;color:#6e7681;display:none"></span>
 </div>
@@ -941,70 +1020,10 @@ function isCapacitorNative() {
 }
 
 function needsServerSettings() {
-  if (!isCapacitorNative()) return false;
-  return !localStorage.getItem(DF_API_KEY) && !window.DF_CONFIG?.apiBase;
+  return false;
 }
 
-function showSettingsOverlay() {
-  const el = document.getElementById("settings-overlay");
-  const input = document.getElementById("settings-server-url");
-  if (input) input.value = localStorage.getItem(DF_API_KEY) || window.DF_CONFIG?.apiBase || "";
-  const err = document.getElementById("settings-error");
-  const status = document.getElementById("settings-status");
-  if (err) err.textContent = "";
-  if (status) status.textContent = "";
-  el?.classList.add("visible");
-  el?.style && (el.style.display = "flex");
-}
-
-function hideSettingsOverlay() {
-  const el = document.getElementById("settings-overlay");
-  el?.classList.remove("visible");
-  if (el?.style) el.style.display = "";
-}
-
-async function testServerConnection() {
-  const input = document.getElementById("settings-server-url");
-  const errEl = document.getElementById("settings-error");
-  const statusEl = document.getElementById("settings-status");
-  const url = input?.value?.trim()?.replace(/\/$/, "") ?? "";
-  if (!url) {
-    if (errEl) errEl.textContent = "Introduce una URL.";
-    return false;
-  }
-  if (errEl) errEl.textContent = "";
-  if (statusEl) statusEl.textContent = "Probando…";
-  const prev = localStorage.getItem(DF_API_KEY);
-  localStorage.setItem(DF_API_KEY, url);
-  try {
-    const r = await fetch(apiUrl("/api/profile/me"), { headers: { Accept: "application/json" } });
-    if (r.status === 401 || r.ok) {
-      if (statusEl) statusEl.textContent = "Conexión OK";
-      return true;
-    }
-    throw new Error(`HTTP ${r.status}`);
-  } catch (e) {
-    if (prev) localStorage.setItem(DF_API_KEY, prev);
-    else localStorage.removeItem(DF_API_KEY);
-    if (errEl) errEl.textContent = "No se pudo conectar. ¿Servidor levantado y URL correcta?";
-    if (statusEl) statusEl.textContent = "";
-    return false;
-  }
-}
-
-function saveServerSettings() {
-  const input = document.getElementById("settings-server-url");
-  const url = input?.value?.trim()?.replace(/\/$/, "") ?? "";
-  if (!url) {
-    document.getElementById("settings-error").textContent = "Introduce una URL.";
-    return;
-  }
-  localStorage.setItem(DF_API_KEY, url);
-  hideSettingsOverlay();
-  if (simWs) { wsManualClose = true; try { simWs.close(); } catch {} simWs = null; wsAuthenticated = false; wsConnected = false; }
-  if (gameStarted) connectSimWs();
-  else tryRestoreDfSession();
-}
+function hideSettingsOverlay() { /* ajustes de servidor retirados en web */ }
 
 function tacticalHaptic() {
   try {
@@ -6618,7 +6637,19 @@ function updateCaptainHud() {
   const el = document.getElementById("captain-lbl");
   if (!el) return;
   const name = dfProfile?.captainName ?? dfProfile?.username ?? "—";
-  el.textContent = `Capitán: ${name}`;
+  el.replaceChildren();
+  const avatarUrl = dfProfile?.avatarUrl;
+  if (avatarUrl) {
+    const img = document.createElement("img");
+    img.id = "captain-avatar";
+    img.src = avatarUrl;
+    img.alt = "";
+    img.width = 20;
+    img.height = 20;
+    img.referrerPolicy = "no-referrer";
+    el.appendChild(img);
+  }
+  el.append(`Capitán: ${name}`);
 }
 
 function saveDfSession(token, profile) {
@@ -6680,6 +6711,8 @@ document.getElementById('update-banner-dismiss')?.addEventListener('click', () =
 function showLoginOverlay(message) {
   const overlay = document.getElementById("login-overlay");
   const err = document.getElementById("login-error");
+  document.getElementById("login-auth")?.classList.remove("hidden");
+  document.getElementById("login-session")?.classList.add("hidden");
   if (overlay) overlay.classList.remove("hidden");
   if (err) err.textContent = message ?? "";
   const status = document.getElementById("status");
@@ -6688,6 +6721,68 @@ function showLoginOverlay(message) {
   window.DigitalFrontBgm?.init();
   window.DigitalFrontBgm?.playMenu();
   void window.DfAuth?.refreshOAuthButtons?.();
+}
+
+const AUTH_PROVIDER_LABELS = { github: "Conectado con GitHub", x: "Conectado con X", guest: "Jugador invitado" };
+
+function paintSessionAvatar(profile) {
+  const img = document.getElementById("login-session-avatar");
+  const fallback = document.getElementById("login-session-avatar-fallback");
+  const username = profile?.username ?? profile?.captainName ?? "?";
+  const initial = username.trim().charAt(0).toUpperCase() || "?";
+  if (profile?.avatarUrl && img) {
+    img.src = profile.avatarUrl;
+    img.alt = username;
+    img.hidden = false;
+    img.referrerPolicy = "no-referrer";
+    img.onerror = () => {
+      img.hidden = true;
+      if (fallback) {
+        fallback.textContent = initial;
+        fallback.hidden = false;
+      }
+    };
+    if (fallback) fallback.hidden = true;
+  } else {
+    if (img) img.hidden = true;
+    if (fallback) {
+      fallback.textContent = initial;
+      fallback.hidden = false;
+    }
+  }
+}
+
+function showSessionPanel(profile) {
+  const overlay = document.getElementById("login-overlay");
+  document.getElementById("login-auth")?.classList.add("hidden");
+  document.getElementById("login-session")?.classList.remove("hidden");
+  if (overlay) overlay.classList.remove("hidden");
+  const username = profile?.username ?? profile?.captainName ?? "Comandante";
+  const usernameEl = document.getElementById("login-session-username");
+  const providerEl = document.getElementById("login-session-provider");
+  const greetingEl = document.getElementById("login-session-greeting");
+  if (usernameEl) usernameEl.textContent = username;
+  if (providerEl) providerEl.textContent = AUTH_PROVIDER_LABELS[profile?.authProvider] ?? "";
+  if (greetingEl) greetingEl.textContent = `Hola, ${username}. Cuando estés listo, entrá al mundo.`;
+  paintSessionAvatar(profile);
+  const status = document.getElementById("status");
+  if (status) status.textContent = "Sesión activa";
+  applyLoginVersionInfo();
+  window.DigitalFrontBgm?.init();
+  window.DigitalFrontBgm?.playMenu();
+}
+
+function logoutSession() {
+  window.DfAuth?.clearDfSession();
+  dfAuthToken = null;
+  dfProfile = null;
+  sessionStorage.removeItem("df_oauth_fresh");
+  sessionStorage.removeItem("df_oauth_pending");
+  if (gameStarted) {
+    location.reload();
+    return;
+  }
+  showLoginOverlay();
 }
 
 function hideLoginOverlay() {
@@ -6708,10 +6803,6 @@ async function tryRestoreDfSession() {
   if (window.DfAuth?.isOAuthCallbackPath?.()) {
     showLoginOverlay("Completando inicio de sesión…");
   }
-  if (needsServerSettings()) {
-    showSettingsOverlay();
-    return;
-  }
   document.getElementById("status")?.textContent = "Verificando sesión…";
   try {
     const restored = await window.DfAuth.tryRestoreDfSession();
@@ -6721,7 +6812,7 @@ async function tryRestoreDfSession() {
     }
     if (restored?.token && restored?.profile) {
       saveDfSession(restored.token, restored.profile);
-      startGameAfterAuth();
+      showSessionPanel(restored.profile);
       return;
     }
     showLoginOverlay();
@@ -6749,7 +6840,7 @@ async function submitGuestLogin() {
   try {
     const data = await guestLogin(username);
     saveDfSession(data.token, data.profile);
-    startGameAfterAuth();
+    showSessionPanel(data.profile);
   } catch (e) {
     if (err) err.textContent = e.message || "Error de login";
     document.getElementById("status").textContent = "Esperando identificación…";
@@ -6785,6 +6876,8 @@ function startGameAfterAuth() {
   startSimTransport();
   setTimeout(generate, 300);
 }
+document.getElementById("login-enter-world")?.addEventListener("click", () => startGameAfterAuth());
+document.getElementById("login-logout")?.addEventListener("click", logoutSession);
 document.getElementById("login-submit")?.addEventListener("click", submitGuestLogin);
 document.getElementById("login-username")?.addEventListener("keydown", e => {
   if (e.key === "Enter") submitGuestLogin();
@@ -7532,14 +7625,6 @@ window.addEventListener("keydown", e => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./tile-sw.js").catch(() => {});
 }
-
-document.getElementById("settings-test")?.addEventListener("click", testServerConnection);
-document.getElementById("settings-save")?.addEventListener("click", async () => {
-  const ok = await testServerConnection();
-  if (ok) saveServerSettings();
-});
-document.getElementById("login-settings")?.addEventListener("click", showSettingsOverlay);
-document.getElementById("btn-settings-hud")?.addEventListener("click", showSettingsOverlay);
 
 document.getElementById("inp-seed")?.addEventListener("input", e => {
   const seed = e.target.value.trim();

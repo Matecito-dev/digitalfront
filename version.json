@@ -1,8 +1,9 @@
 {
-  "version": "0.0.6",
-  "title": "Sesión OAuth al entrar al juego",
+  "version": "0.0.7",
+  "title": "Pantalla de comandante",
   "changelog": [
-    "Tras login GitHub/X ya entrás al mapa con tu perfil de comandante.",
+    "Con sesión iniciada ves tu usuario, foto de GitHub/X, entrar al mundo o cerrar sesión.",
+    "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",
     "Bárbaros ya no reaparecen al instante tras derrotarlos.",
