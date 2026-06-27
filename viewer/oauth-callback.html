@@ -4,13 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Digital Front — Iniciando sesión</title>
-<script src="config.js"></script>
-<script src="auth-oauth.js"></script>
+<base href="/">
+<script src="/config.js"></script>
+<script src="/auth-oauth.js"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search);
   if (!q.get("code") && !q.get("error")) {
     location.replace("/");
+    return;
+  }
+  if (!window.DfAuth || typeof window.DfAuth.handleOAuthCallback !== "function") {
+    location.replace("/?oauth_error=" + encodeURIComponent("No se pudo cargar el login. Recargá con Ctrl+Shift+R."));
     return;
   }
   (async function () {

@@ -1,8 +1,8 @@
 {
-  "version": "0.0.9",
-  "title": "Callback OAuth dedicado",
+  "version": "0.0.10",
+  "title": "Fix rutas callback OAuth",
   "changelog": [
-    "Login GitHub/X usa página ligera de callback — sesión de comandante visible al volver.",
+    "Corregido login GitHub/X: scripts del callback ya cargan desde la raíz del sitio.",
     "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
     "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
     "Arreglado login con X: ya te lleva al juego tras autorizar.",
