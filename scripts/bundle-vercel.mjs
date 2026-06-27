@@ -45,6 +45,9 @@ const dfOAuth = {
 const COPY_FILES = [
   'branding.js',
   'auth-oauth.js',
+  'auth-ui.js',
+  'game-loader.js',
+  'game-core.js',
   'session-boot.js',
   'oauth-callback.html',
   'version.js',
@@ -80,6 +83,9 @@ html = html
   .replace(/src="config\.js"/g, 'src="./config.js"')
   .replace(/src="branding\.js"/g, 'src="./branding.js"')
   .replace(/src="auth-oauth\.js"/g, 'src="./auth-oauth.js"')
+  .replace(/src="auth-ui\.js"/g, 'src="./auth-ui.js"')
+  .replace(/src="game-loader\.js"/g, 'src="./game-loader.js"')
+  .replace(/src="game-core\.js"/g, 'src="./game-core.js"')
   .replace(/src="session-boot\.js"/g, 'src="./session-boot.js"')
   .replace(/src="terrain-tactics\.js"/g, 'src="./terrain-tactics.js"')
   .replace(/src="tactical-orders\.js"/g, 'src="./tactical-orders.js"')

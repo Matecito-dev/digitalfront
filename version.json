@@ -1,12 +1,12 @@
 {
-  "version": "0.0.12",
-  "title": "Entrar al mundo fiable",
+  "version": "0.0.13",
+  "title": "Carga con barra de progreso",
   "changelog": [
+    "Pantalla de carga con fondo del juego y barra de progreso real al entrar al mundo.",
+    "Phaser y el núcleo del juego se cargan solo cuando pulsás «Entrar al mundo» (login más rápido).",
+    "Errores de carga con mensaje concreto en lugar de quedarse en «Cargando motor…».",
     "«Entrar al mundo» ya no queda colgado en Cargando motor del juego.",
     "Quitamos ajustes del servidor — ya no se muestra la URL del backend.",
-    "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend).",
-    "Arreglado login con X: ya te lleva al juego tras autorizar.",
-    "Bárbaros ya no reaparecen al instante tras derrotarlos.",
-    "Aviso cuando hay una versión nueva del juego."
+    "El juego usa siempre api.gamedevforge.com en la web (no el dominio del frontend)."
   ]
 }

@@ -83,54 +83,26 @@
     if (profile) showSessionUi(profile);
   }
 
-  function showEnterLoading(msg) {
-    const boot = document.getElementById("login-boot-status");
+  function setEnterButtonBusy(busy) {
     const btn = document.getElementById("login-enter-world");
-    if (boot) {
-      boot.style.display = "block";
-      boot.textContent = msg;
-    }
-    if (btn) btn.disabled = true;
-  }
-
-  function hideEnterLoading() {
-    const btn = document.getElementById("login-enter-world");
-    if (btn) btn.disabled = false;
-  }
-
-  function waitUntil(test, maxMs) {
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      (function tick() {
-        if (test()) return resolve();
-        if (Date.now() - start > maxMs) return reject(new Error("timeout"));
-        setTimeout(tick, 100);
-      })();
-    });
+    if (btn) btn.disabled = busy;
   }
 
   async function tryEnterWorld() {
-    showEnterLoading("Cargando motor del juego…");
+    setEnterButtonBusy(true);
     try {
-      if (typeof window.startGameAfterAuth !== "function") {
-        await waitUntil(() => typeof window.startGameAfterAuth === "function", 15000);
+      if (typeof window.DfLoadAndStartGame !== "function") {
+        throw new Error("Cargador del juego no disponible.");
       }
-      window.startGameAfterAuth();
-      if (window.__DF_ENTER_WORLD_QUEUED) {
-        await waitUntil(() => typeof window.__dfStartGameAfterAuth === "function", 120000);
-        window.__DF_ENTER_WORLD_QUEUED = false;
-        window.__dfStartGameAfterAuth();
-      }
-      await waitUntil(
-        () => document.getElementById("login-overlay")?.classList.contains("hidden"),
-        120000,
-      );
+      await window.DfLoadAndStartGame();
+    } catch (err) {
       const boot = document.getElementById("login-boot-status");
-      if (boot) boot.style.display = "none";
-    } catch {
-      showEnterLoading("No se pudo cargar el juego. Recargá con Ctrl+Shift+R.");
+      if (boot) {
+        boot.style.display = "block";
+        boot.textContent = err?.message || "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.";
+      }
     } finally {
-      hideEnterLoading();
+      setEnterButtonBusy(false);
     }
   }
 
