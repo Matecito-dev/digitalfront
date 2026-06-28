@@ -103,6 +103,14 @@
       boot.textContent = "Preparando el frente…";
     }
     try {
+      if (window.gameStarted && window.__DF_MENU_PAUSED) {
+        if (typeof window.DfResumeFromMenu !== "function") {
+          throw new Error("No se pudo reanudar el juego.");
+        }
+        await window.DfResumeFromMenu();
+        if (boot) boot.style.display = "none";
+        return;
+      }
       if (typeof window.DfLoadAndStartGame !== "function") {
         throw new Error("Cargador del juego no disponible. Recargá con Ctrl+Shift+R.");
       }

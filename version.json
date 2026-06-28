@@ -1,9 +1,11 @@
 {
-  "version": "0.0.18",
-  "title": "APK Android optimizada",
+  "version": "0.0.20",
+  "title": "Login cinematográfico + HUD desktop",
   "changelog": [
-    "Build APK sincronizado con web: auth-ui, session-boot, game-loader, game-core y OAuth callbacks.",
-    "Login compacto en landscape nativo; OAuth X/GitHub vía Browser + App Links (play.gamedevforge.com).",
-    "Ajustes de servidor en primer arranque APK; perfil low automático en dispositivos con poca RAM."
+    "Rediseño cinematográfico de login y pantalla de carga (desktop + mobile landscape).",
+    "HUD desktop moderno con paneles glass, chip de perfil y menú de ajustes.",
+    "Ir al inicio desde in-game (panel de sesión) y cerrar sesión desde el menú.",
+    "Package ID unificado com.digitalfront.game, ranking rebuild cada 6h, smoke tests.",
+    "Limpieza de procesos huérfanos tras tests (vitest globalTeardown + hook Cursor)."
   ]
 }

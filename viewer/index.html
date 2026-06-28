@@ -41,6 +41,9 @@
 })();
 </script>
 <link rel="stylesheet" href="hud.css">
+<link rel="stylesheet" href="hud-desktop.css">
+<link rel="stylesheet" href="login.css">
+<link rel="stylesheet" href="load-screen.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
@@ -367,212 +370,6 @@ button.sec:hover { background: #30363d; }
   font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
 }
 
-#login-overlay {
-  position: fixed; inset: 0; z-index: 300;
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
-  background:
-    linear-gradient(135deg, #050810e8 0%, #0d1117f0 50%, #050810ee 100%),
-    image-set(url('./assets/dgbg.webp') type('image/webp'), url('./assets/dgbg.jpg') type('image/jpeg')) center/cover no-repeat,
-    url('./assets/dgbg.jpg') center/cover no-repeat;
-  background-color: #050810;
-  backdrop-filter: blur(8px);
-  pointer-events: auto;
-  overflow-y: auto;
-}
-#login-overlay.hidden { display: none; }
-#login-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 20px;
-  width: min(920px, 96vw);
-  align-items: stretch;
-}
-@media (max-width: 780px) {
-  #login-shell { grid-template-columns: 1fr; max-width: 420px; }
-  #login-hero { order: 2; }
-  #login-box { order: 1; }
-}
-html.capacitor-native #login-hero-banner { display: none !important; }
-@media (orientation: landscape) and (max-height: 520px) {
-  html.capacitor-native #login-overlay {
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: max(12px, env(safe-area-inset-top));
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-    -webkit-overflow-scrolling: touch;
-  }
-  html.capacitor-native #login-shell {
-    grid-template-columns: 1fr;
-    max-width: min(480px, 94vw);
-    width: 100%;
-    gap: 12px;
-  }
-  html.capacitor-native #login-hero {
-    padding: 14px 16px;
-    gap: 8px;
-  }
-  html.capacitor-native #login-hero-logo {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 0;
-  }
-  html.capacitor-native #login-hero h1 { font-size: 20px; }
-  html.capacitor-native #login-hero-tagline {
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  html.capacitor-native #login-changelog,
-  html.capacitor-native .login-version-row { display: none; }
-  html.capacitor-native #login-box {
-    padding: 16px 16px 14px;
-  }
-  html.capacitor-native #login-oauth a[role="button"] { width: 100%; }
-  html.capacitor-native #login-session-profile {
-    padding: 10px;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  html.capacitor-native #login-session-avatar-wrap,
-  html.capacitor-native #login-session-avatar,
-  html.capacitor-native #login-session-avatar-fallback {
-    width: 48px;
-    height: 48px;
-  }
-  html.capacitor-native #login-session-avatar-fallback { font-size: 20px; }
-}
-#login-hero {
-  background: linear-gradient(160deg, #161b22f2 0%, #0d1117f5 100%);
-  border: 1px solid #30363d;
-  border-radius: 14px;
-  padding: 24px 22px;
-  box-shadow: 0 16px 48px #00000066;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-#login-hero-logo {
-  display: block;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 4px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 18px #58a6ff55);
-}
-#login-hero h1 {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-align: center;
-  color: #e6edf3;
-  line-height: 1.15;
-}
-#login-hero-tagline {
-  font-size: 13px;
-  color: #8b949e;
-  text-align: center;
-  line-height: 1.55;
-  margin: 0;
-}
-#login-hero-banner {
-  width: 100%;
-  max-height: 88px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #30363d;
-  opacity: 0.92;
-}
-.login-version-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.login-version-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #58a6ff;
-  background: #58a6ff18;
-  border: 1px solid #58a6ff55;
-  border-radius: 999px;
-  padding: 3px 10px;
-}
-.login-version-label {
-  font-size: 11px;
-  color: #6e7681;
-}
-#login-changelog {
-  background: #0d1117cc;
-  border: 1px solid #21262d;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-top: auto;
-}
-#login-changelog h3 {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #8b949e;
-  margin: 0 0 8px;
-}
-#login-changelog ul {
-  margin: 0;
-  padding: 0 0 0 16px;
-  font-size: 11px;
-  color: #c9d1d9;
-  line-height: 1.55;
-}
-#login-changelog li { margin-bottom: 5px; }
-#login-changelog li:last-child { margin-bottom: 0; }
-#login-box button {
-  touch-action: manipulation;
-  cursor: pointer;
-  min-height: 44px;
-}
-#login-box {
-  background: #161b22f5;
-  border: 1px solid #30363d;
-  border-radius: 14px;
-  padding: 22px 22px 20px;
-  box-shadow: 0 16px 48px #00000088;
-  display: flex;
-  flex-direction: column;
-}
-#login-box h2 {
-  font-size: 15px; font-weight: 700; color: #58a6ff; margin-bottom: 6px;
-}
-#login-box p {
-  font-size: 11px; color: #8b949e; line-height: 1.55; margin-bottom: 12px;
-}
-#login-box label {
-  display: block; font-size: 10px; color: #8b949e; margin-bottom: 4px;
-}
-#login-username {
-  width: 100%; padding: 10px 12px; font-size: 13px; margin-bottom: 8px;
-  border-radius: 8px;
-}
-#login-error {
-  min-height: 16px; font-size: 10px; color: #f85149; margin-bottom: 8px;
-}
-#login-submit {
-  width: 100%; padding: 10px 12px; font-size: 13px; font-weight: 600;
-  border-radius: 8px;
-}
-#captain-lbl {
-  font-size: 10px; color: #3ddc84; font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 
 #connection-banner {
   position: fixed; top: 36px; left: 50%; transform: translateX(-50%); z-index: 170;
@@ -613,125 +410,6 @@ html.capacitor-native #login-hero-banner { display: none !important; }
 body.mobile-play #connection-dot { display: inline-block; }
 #connection-dot.connected { background: #3fb950; box-shadow: 0 0 6px #3fb95088; }
 
-#login-tagline {
-  font-size: 12px; color: #c9d1d9; font-weight: 500; margin-bottom: 10px;
-}
-#login-links {
-  display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
-}
-#login-links a, #login-links button.linkish {
-  display: block; text-align: center; font-size: 11px; padding: 9px 10px;
-  border-radius: 8px; text-decoration: none; color: #58a6ff;
-  background: #21262d; border: 1px solid #30363d; cursor: pointer;
-}
-#login-links a:hover, #login-links button.linkish:hover { background: #30363d; }
-#login-divider {
-  text-align: center; font-size: 9px; color: #6e7681; margin: 12px 0 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-#login-oauth {
-  display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;
-}
-#login-oauth a[role="button"] {
-  width: 100%; padding: 10px 12px; font-size: 12px; font-weight: 600;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  border-radius: 8px; text-decoration: none; cursor: pointer; box-sizing: border-box;
-}
-#login-oauth .oauth-github { background: #24292f; border: 1px solid #30363d; color: #e6edf3; }
-#login-oauth .oauth-github:hover { background: #30363d; }
-#login-oauth .oauth-x { background: #000; border: 1px solid #30363d; color: #e6edf3; }
-#login-oauth .oauth-x:hover { background: #161616; }
-#login-oauth .oauth-loading { opacity: 0.65; pointer-events: none; }
-#login-auth.hidden, #login-session.hidden { display: none !important; }
-html.df-await-session-ui #login-overlay { display: flex !important; }
-html.df-await-session-ui #login-auth { display: none !important; }
-html.df-await-session-ui #login-session { display: block !important; }
-#login-boot-status {
-  display: none;
-  font-size: 11px;
-  color: #8b949e;
-  text-align: center;
-  padding: 8px 0 0;
-}
-html.df-await-session-ui #login-boot-status { display: block; }
-#login-session-profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding: 14px;
-  background: #0d1117;
-  border-radius: 10px;
-  border: 1px solid #30363d;
-}
-#login-session-avatar-wrap {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  position: relative;
-}
-#login-session-avatar,
-#login-session-avatar-fallback {
-  position: absolute;
-  inset: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid #30363d;
-  box-sizing: border-box;
-}
-#login-session-avatar {
-  object-fit: cover;
-  background: #21262d;
-}
-#login-session-avatar[hidden],
-#login-session-avatar-fallback[hidden] {
-  display: none !important;
-}
-#login-session-avatar-fallback {
-  background: linear-gradient(135deg, #1f6feb 0%, #21262d 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  font-weight: 700;
-  color: #e6edf3;
-}
-#login-session-username {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e6edf3;
-  margin-bottom: 4px;
-  word-break: break-word;
-}
-#login-session-provider {
-  font-size: 11px;
-  color: #8b949e;
-}
-#login-session .login-session-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-#login-session .login-session-actions button,
-#login-session .login-session-actions a {
-  width: 100%;
-  min-height: 44px;
-  text-align: center;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#captain-avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #30363d;
-  vertical-align: middle;
-}
 #login-apk-link { display: none !important; }
 #update-banner {
   display: none;
@@ -761,47 +439,6 @@ html.df-await-session-ui #login-boot-status { display: block; }
 }
 #update-banner button.sec { background: transparent; color: #8b949e; border: 1px solid #30363d; }
 #ranking-share { width: 100%; margin-top: 4px; font-size: 9px; }
-
-/* ── Pantalla de carga del juego ── */
-#game-load-screen {
-  position: fixed; inset: 0; z-index: 400;
-  display: none; align-items: center; justify-content: center;
-  padding: 24px;
-  background:
-    linear-gradient(135deg, #050810ee 0%, #0d1117f2 50%, #050810ee 100%),
-    image-set(url('./assets/dgbg.webp') type('image/webp'), url('./assets/dgbg.jpg') type('image/jpeg')) center/cover no-repeat,
-    url('./assets/dgbg.jpg') center/cover no-repeat;
-  background-color: #050810;
-}
-#game-load-screen.visible { display: flex; }
-#game-load-screen.error .game-load-panel { border-color: #f85149; }
-.game-load-panel {
-  width: min(420px, 92vw);
-  background: linear-gradient(160deg, #161b22f5 0%, #0d1117fa 100%);
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 28px 24px;
-  text-align: center;
-  box-shadow: 0 12px 48px #00000088;
-}
-.game-load-panel h2 {
-  font-size: 1.25rem; color: #58a6ff; margin-bottom: 12px;
-}
-#game-load-label {
-  font-size: 13px; color: #8b949e; margin-bottom: 16px; min-height: 1.4em;
-}
-.game-load-bar-track {
-  height: 10px; border-radius: 999px; overflow: hidden;
-  background: #21262d; border: 1px solid #30363d;
-}
-#game-load-bar-fill {
-  height: 100%; width: 0%;
-  background: linear-gradient(90deg, #238636, #58a6ff);
-  transition: width 0.15s ease-out;
-}
-#game-load-pct {
-  margin-top: 10px; font-size: 12px; color: #e6edf3; font-variant-numeric: tabular-nums;
-}
 </style>
 </head>
 <body>
@@ -826,7 +463,7 @@ html.df-await-session-ui #login-boot-status { display: block; }
 
 <div id="login-overlay">
   <div id="login-shell">
-    <aside id="login-hero">
+    <aside id="login-hero" class="login-glass-panel">
       <img id="login-hero-logo" src="./assets/dglogo.png" width="120" height="120" alt="Digital Front">
       <h1>Digital Front</h1>
       <p id="login-hero-tagline">Guerra táctica en un mapa que se genera solo. Explora, pelea y sobrevive en el Valle de Bruma.</p>
@@ -846,13 +483,20 @@ html.df-await-session-ui #login-boot-status { display: block; }
         </ul>
       </section>
     </aside>
-    <div id="login-box">
+    <div id="login-box" class="login-glass-panel">
+      <span id="login-apk-version-badge" class="login-apk-version-badge" aria-label="Versión del juego"></span>
       <div id="login-auth">
         <h2>Entrar al frente</h2>
         <p id="login-tagline">Elegí cómo querés jugar. Tu capitán aparece en el mapa y en el ranking global.</p>
         <div id="login-oauth">
-          <a href="#" class="oauth-github" id="login-github" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('github');}return false;">Continuar con GitHub</a>
-          <a href="#" class="oauth-x" id="login-x" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('x');}return false;">Continuar con X</a>
+          <a href="#" class="oauth-github" id="login-github" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('github');}return false;">
+            <svg class="oauth-icon" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.18.82.63-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.51-1.04 2.18-.82 2.18-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            Continuar con GitHub
+          </a>
+          <a href="#" class="oauth-x" id="login-x" role="button" onclick="if(window.DfAuth){void window.DfAuth.handleOAuthButtonClick('x');}return false;">
+            <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Continuar con X
+          </a>
         </div>
         <div id="login-links">
           <a id="login-apk-link" href="https://api.gamedevforge.com/apk/app-debug.apk" target="_blank" rel="noopener">📱 Descargar APK Android</a>
@@ -886,6 +530,26 @@ html.df-await-session-ui #login-boot-status { display: block; }
     </div>
   </div>
 </div>
+
+<div id="game-load-screen" aria-live="polite" aria-busy="true">
+  <div class="load-screen-bg" aria-hidden="true"></div>
+  <div class="load-screen-content">
+    <div class="load-brand-col">
+      <img class="load-logo" src="./assets/dglogo.png" width="96" height="96" alt="">
+      <h2 class="load-title">Digital Front</h2>
+    </div>
+    <div class="load-progress-col">
+      <p id="game-load-label">Iniciando…</p>
+      <div class="load-progress-wrap">
+        <div class="game-load-bar-track"><div id="game-load-bar-fill"></div></div>
+        <span id="game-load-pct">0%</span>
+      </div>
+      <ul id="game-load-steps" class="load-steps"></ul>
+      <button type="button" id="game-load-retry" class="hidden">Reintentar</button>
+    </div>
+  </div>
+</div>
+
 <script src="session-boot.js"></script>
 
 <div id="connection-banner">Reconectando…</div>
@@ -903,33 +567,78 @@ html.df-await-session-ui #login-boot-status { display: block; }
 
 <!-- Top HUD -->
 <div id="hud-top">
-  <h1>⚔ Digital Front</h1>
-  <span style="color:#8b949e;font-size:10px">Guerra en tiempo real</span>
-  <span id="captain-lbl">Capitán: —</span>
-  <span id="hud-gold" class="hud-gold" title="Oro del batallón">🪙 <span id="gold-amt">0</span></span>
-  <span id="hud-refuge" class="hud-refuge-chip">🏕 En refugio</span>
-  <div id="hud-battalion" class="hud-battalion">
-    <div id="hud-hp-segments" class="hp-segments" title="HP (arriba) y armadura (barra gris abajo)"></div>
-    <div id="hud-combat-intensity" class="combat-intensity-wrap" title="Intensidad de combate" aria-hidden="true">
-      <div id="hud-combat-intensity-fill" class="combat-intensity-fill"></div>
+  <div class="hud-zone hud-zone-brand">
+    <span class="hud-brand-mark" aria-hidden="true">⚔</span>
+    <div class="hud-brand-text">
+      <span class="hud-brand-title">Digital Front</span>
+      <span class="hud-brand-sub">Guerra en tiempo real</span>
     </div>
-    <span id="hud-posture-chip" class="posture-chip">MARCHA</span>
-    <span id="hud-barbs-vision" class="threat-chip" title="Bandas en visión">☠ 0</span>
-    <span id="combat-alert-inline">⚔ Combate</span>
   </div>
-  <div id="dev-seed">
-    <label>Mundo <input type="text" id="inp-seed" value="valle-bruma" style="width:110px" title="Seed del mapa"></label>
-    <b id="world-name-lbl" style="color:#58a6ff;font-size:10px">Valle de Bruma</b>
-    <button id="btn-gen">Generar</button>
+  <div class="hud-sep" aria-hidden="true"></div>
+  <button type="button" id="hud-profile-chip" class="hud-profile-chip" aria-haspopup="dialog" aria-label="Perfil del capitán">
+    <span id="hud-profile-avatar-wrap" class="hud-profile-avatar-wrap">
+      <img id="hud-profile-avatar" alt="" width="28" height="28" hidden>
+      <span id="hud-profile-avatar-fallback" class="hud-avatar-fallback" hidden aria-hidden="true"></span>
+    </span>
+    <span id="captain-lbl" class="hud-profile-name">—</span>
+  </button>
+  <div class="hud-zone hud-zone-combat">
+    <span id="hud-gold" class="hud-gold" title="Oro del batallón">🪙 <span id="gold-amt">0</span></span>
+    <span id="hud-refuge" class="hud-refuge-chip">🏕 En refugio</span>
+    <div id="hud-battalion" class="hud-battalion">
+      <div id="hud-hp-segments" class="hp-segments" title="HP (arriba) y armadura (barra gris abajo)"></div>
+      <div id="hud-combat-intensity" class="combat-intensity-wrap" title="Intensidad de combate" aria-hidden="true">
+        <div id="hud-combat-intensity-fill" class="combat-intensity-fill"></div>
+      </div>
+      <span id="hud-posture-chip" class="posture-chip">MARCHA</span>
+      <span id="hud-barbs-vision" class="threat-chip" title="Bandas en visión">☠ 0</span>
+      <span id="combat-alert-inline">⚔ Combate</span>
+    </div>
   </div>
-  <button type="button" id="btn-follow-squad" class="sec" title="Atajo: F">Seguir escuadrón</button>
-  <button type="button" id="btn-sfx-mute" class="sec" title="Silenciar sonido">🔊</button>
-  <span id="status" style="margin-left:auto">Cargando…</span>
-  <span id="perf-lbl" style="font-size:9px;color:#6e7681;display:none"></span>
+  <div class="hud-zone hud-zone-actions">
+    <div id="dev-seed">
+      <label>Mundo <input type="text" id="inp-seed" value="valle-bruma" style="width:110px" title="Seed del mapa"></label>
+      <b id="world-name-lbl" style="color:#58a6ff;font-size:10px">Valle de Bruma</b>
+      <button id="btn-gen">Generar</button>
+    </div>
+    <button type="button" id="btn-follow-squad" class="sec" title="Atajo: F">Seguir escuadrón</button>
+    <button type="button" id="btn-sfx-mute" class="sec" title="Silenciar sonido">🔊</button>
+    <span id="status">Cargando…</span>
+    <span id="perf-lbl" style="font-size:9px;color:#6e7681;display:none"></span>
+    <button type="button" id="btn-hud-menu" class="hud-icon-btn" title="Ajustes" aria-label="Ajustes">⚙</button>
+  </div>
+</div>
+
+<div id="hud-menu-overlay" role="dialog" aria-labelledby="hud-menu-title" aria-modal="true">
+  <div class="hud-menu-panel login-glass-panel">
+    <button type="button" id="hud-menu-close" class="hud-menu-close" aria-label="Cerrar">✕</button>
+    <header class="hud-menu-header">
+      <h2 id="hud-menu-title">Ajustes</h2>
+      <p>Tu sesión y acciones de cuenta</p>
+    </header>
+    <section id="hud-menu-profile" class="hud-menu-profile">
+      <div class="hud-menu-avatar-wrap">
+        <img id="hud-menu-avatar" alt="" width="64" height="64" hidden>
+        <span id="hud-menu-avatar-fallback" hidden aria-hidden="true"></span>
+      </div>
+      <div class="hud-menu-profile-text">
+        <p id="hud-menu-display-name">—</p>
+        <p id="hud-menu-username"></p>
+        <span id="hud-menu-provider"></span>
+      </div>
+    </section>
+    <div id="hud-menu-stats" class="hud-menu-stats"></div>
+    <p id="hud-menu-version"></p>
+    <nav class="hud-menu-actions">
+      <button type="button" id="hud-menu-home" class="sec">Ir al inicio</button>
+      <button type="button" id="hud-menu-logout" class="danger">Cerrar sesión</button>
+    </nav>
+    <button type="button" id="hud-menu-server-link">Configurar servidor</button>
+  </div>
 </div>
 
 <div id="refuge-banner">
-  <span>🏕 Estás en refugio — el movimiento está bloqueado</span>
+  <span id="refuge-banner-text">🏕 <b>Primer paso:</b> estás en refugio seguro — no podés moverte. Pulsa <b>Salir al campo</b> (acá o el botón 🏕 abajo).</span>
   <button type="button" id="refuge-exit-btn">Salir al campo</button>
 </div>
 
@@ -1160,6 +869,7 @@ function needsServerSettings() {
   const stored = localStorage.getItem(DF_API_KEY)?.replace(/\/$/, "") || "";
   return !stored && !configured;
 }
+window.needsServerSettings = needsServerSettings;
 
 function showSettingsOverlay() {
   const el = document.getElementById("settings-overlay");

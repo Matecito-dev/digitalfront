@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterShellExecution": [
+      {
+        "command": ".cursor/hooks/test-cleanup.sh",
+        "matcher": "vitest|npm run test"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/test-cleanup.sh"
+      }
+    ]
+  }
+}

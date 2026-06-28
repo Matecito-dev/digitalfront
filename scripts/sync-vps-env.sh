@@ -3,7 +3,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VPS_HOST="${VPS_HOST:-ubuntu@192.99.54.33}"
+VPS_IP="${VPS_IP:-192.99.54.33}"
+VPS_USER="${VPS_USER:-ubuntu}"
+VPS_HOST="${VPS_HOST:-${VPS_USER}@${VPS_IP}}"
 SLUG="avps"
 ENV_FILE="/srv/${SLUG}/.env"
 LOCAL_ENV="${ROOT}/.env"

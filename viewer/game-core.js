@@ -1390,7 +1390,7 @@ async function toggleTacticalPause() {
 
 const TUTORIAL_STEPS = DEVICE_PROFILE === 'mobile'
   ? [
-    '<b>Paso 1 — Salir del refugio</b><br>Al empezar estás en zona segura y <b>no puedes moverte</b>. Pulsa <b>Salir al campo</b> (banner verde arriba o botón 🏕 abajo).',
+    '<b>Paso 1 — Salir del refugio</b><br>Al empezar aparecés en zona segura: <b>no podés mover unidades</b> hasta salir. Pulsa el banner verde <b>«Salir al campo»</b> arriba o el botón <b>🏕</b> abajo (dice «Salir refugio»).',
     '<b>Paso 2 — Seleccionar</b><br>Tap en una unidad tuya para seleccionarla.',
     '<b>Paso 3 — Orden de movimiento</b><br>Mantén ~0,4 s en el mapa para mover o atacar.',
     '<b>Paso 4 — Zoom y campamento</b><br>Pellizca para zoom. El botón 🏕 abre el menú del campamento.',
@@ -5622,29 +5622,11 @@ document.getElementById("login-ranking-link")?.addEventListener("click", async (
 });
 
 function updateCaptainHud() {
-  const el = document.getElementById("captain-lbl");
-  if (!el) return;
-  const name = window.dfProfile?.captainName ?? window.dfProfile?.username ?? "—";
-  el.replaceChildren();
-  const avatarUrl = window.dfProfile?.avatarUrl;
-  if (avatarUrl) {
-    const img = document.createElement("img");
-    img.id = "captain-avatar";
-    img.src = avatarUrl;
-    img.alt = "";
-    img.width = 20;
-    img.height = 20;
-    img.referrerPolicy = "no-referrer";
-    el.appendChild(img);
-  }
-  el.append(`Capitán: ${name}`);
+  window.updateCaptainHud?.();
 }
 
 function saveDfSession(token, profile) {
-  window.dfAuthToken = token;
-  window.dfProfile = profile;
-  window.DfAuth?.saveDfSession(token, profile);
-  updateCaptainHud();
+  window.saveDfSession?.(token, profile);
 }
 
 function loadDfSessionFromStorage() {
@@ -5709,9 +5691,12 @@ function startSimTransport() {
 function startGameAfterAuth() {
   window.__DF_GAME_BOOT_ERR = null;
   window.__DF_GAME_BOOT_OK = false;
-  if (window.gameStarted) {
+  if (window.gameStarted && !window.__DF_MENU_PAUSED) {
     window.__DF_GAME_BOOT_OK = true;
     return;
+  }
+  if (window.gameStarted && window.__DF_MENU_PAUSED) {
+    return window.DfResumeFromMenu?.();
   }
   if (!window.dfAuthToken) {
     const stored = window.DfAuth?.loadDfSession?.();
@@ -5760,6 +5745,50 @@ let wsReconnectTimer = null;
 let wsManualClose = false;
 let simPosTimer = null;
 let simSse = null;
+
+function disconnectSimTransport() {
+  wsManualClose = true;
+  if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  if (simWs) { try { simWs.close(); } catch {} simWs = null; }
+  if (simSse) { try { simSse.close(); } catch {} simSse = null; }
+  if (simPosTimer) { clearInterval(simPosTimer); simPosTimer = null; }
+  if (statsSyncTimer) { clearInterval(statsSyncTimer); statsSyncTimer = null; }
+  if (rankingRefreshTimer) { clearInterval(rankingRefreshTimer); rankingRefreshTimer = null; }
+  wsAuthenticated = false;
+  wsConnected = false;
+  serverPlayerActive = false;
+  simTransport = null;
+  updateConnectionUi();
+}
+
+window.DfPauseForMenu = function DfPauseForMenu() {
+  window.__DF_MENU_PAUSED = true;
+  disconnectSimTransport();
+  if (!simPaused) {
+    simPaused = true;
+    void simCtrl({ action: 'pause' });
+    const badge = document.getElementById('pause-badge');
+    if (badge) badge.style.display = 'block';
+  }
+};
+
+window.DfResumeFromMenu = async function DfResumeFromMenu() {
+  window.__DF_MENU_PAUSED = false;
+  window.__DF_GAME_BOOT_ERR = null;
+  window.hideLoginOverlay?.();
+  const boot = document.getElementById('login-boot-status');
+  if (boot) boot.style.display = 'none';
+  document.getElementById('game-load-screen')?.classList.remove('visible', 'error');
+  window.DigitalFrontBgm?.playGame?.();
+  if (simPaused) {
+    simPaused = false;
+    await simCtrl({ action: 'play' });
+    const badge = document.getElementById('pause-badge');
+    if (badge) badge.style.display = 'none';
+  }
+  startSimTransport();
+  window.__DF_GAME_BOOT_OK = true;
+};
 
 function updateConnectionUi() {
   const banner = document.getElementById('connection-banner');
@@ -5816,9 +5845,17 @@ function updateRefugeChip(insideId, homeId) {
     campBtn.classList.toggle('exit-mode', !!insideId);
   }
   refreshCampModalIfOpen();
-  if (insideId && !wasInside && !localStorage.getItem('df_refuge_hint')) {
-    localStorage.setItem('df_refuge_hint', '1');
-    showToast('Estás en el refugio. Pulsa «Salir al campo» para mover tu escuadrón.', 5000);
+  if (insideId && !wasInside) {
+    const isFirstRefuge = !localStorage.getItem('df_refuge_hint');
+    if (isFirstRefuge) {
+      localStorage.setItem('df_refuge_hint', '1');
+      banner?.classList.add('first-spawn');
+      setTimeout(() => banner?.classList.remove('first-spawn'), 8000);
+      showToast('Estás en refugio seguro. Pulsa «Salir al campo» (banner arriba o botón 🏕 abajo) para mover tu escuadrón.', 7000);
+      if (!tutorialDismissed) showTutorialStep(1);
+    } else {
+      showToast('Estás en el refugio. Pulsa «Salir al campo» para mover tu escuadrón.', 5000);
+    }
   }
 }
 

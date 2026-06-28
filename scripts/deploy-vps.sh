@@ -1,9 +1,12 @@
 #!/bin/bash
 # Deploy Digital Front → VPS /srv/avps — api.gamedevforge.com
+# Override: VPS_IP=1.2.3.4 bash scripts/deploy-vps.sh  (default IP 192.99.54.33)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VPS_HOST="${VPS_HOST:-ubuntu@192.99.54.33}"
+VPS_IP="${VPS_IP:-192.99.54.33}"
+VPS_USER="${VPS_USER:-ubuntu}"
+VPS_HOST="${VPS_HOST:-${VPS_USER}@${VPS_IP}}"
 SLUG="avps"
 PORT="${AVPS_PORT:-3009}"
 DOMAIN="${AVPS_DOMAIN:-api.gamedevforge.com}"

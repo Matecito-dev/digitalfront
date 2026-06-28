@@ -9,6 +9,9 @@ const OUT = join(ROOT, 'app-www');
 const REQUIRED = [
   'index.html',
   'hud.css',
+  'hud-desktop.css',
+  'login.css',
+  'load-screen.css',
   'config.js',
   'capacitor-init.js',
   'branding.js',
@@ -47,6 +50,18 @@ if (ok) {
   }
   if (!html.includes('./hud.css')) {
     console.error('[app:verify] FAIL index.html missing hud.css');
+    ok = false;
+  }
+  if (!html.includes('./hud-desktop.css')) {
+    console.error('[app:verify] FAIL index.html missing hud-desktop.css');
+    ok = false;
+  }
+  if (!html.includes('./login.css')) {
+    console.error('[app:verify] FAIL index.html missing login.css');
+    ok = false;
+  }
+  if (!html.includes('./load-screen.css')) {
+    console.error('[app:verify] FAIL index.html missing load-screen.css');
     ok = false;
   }
   if (!html.includes('game-loader.js')) {

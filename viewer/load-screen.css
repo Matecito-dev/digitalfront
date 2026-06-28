@@ -1,0 +1,261 @@
+/* Digital Front — pantalla de carga (cinematográfico) */
+
+#game-load-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+
+#game-load-screen.visible {
+  display: flex;
+  animation: dfLoadFadeIn 0.35s ease-out;
+}
+
+@keyframes dfLoadFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.load-screen-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, #05081088 0%, #050810dd 50%, #050810f5 100%),
+    radial-gradient(ellipse 90% 80% at 50% 40%, transparent 0%, #050810 90%),
+    image-set(url("./assets/dgbg.webp") type("image/webp"), url("./assets/dgbg.jpg") type("image/jpeg")) center/cover no-repeat,
+    url("./assets/dgbg.jpg") center/cover no-repeat;
+  background-color: #050810;
+}
+
+.load-screen-content {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 92vw);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 28px;
+  background: rgba(13, 17, 23, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+#game-load-screen.error .load-screen-content {
+  border-color: rgba(248, 81, 73, 0.55);
+}
+
+.load-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px rgba(88, 166, 255, 0.4));
+  animation: dfLoadPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes dfLoadPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.92; }
+}
+
+.load-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #e6edf3;
+  margin: 0;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+}
+
+#game-load-label {
+  font-size: 13px;
+  color: #8b949e;
+  margin: 0;
+  min-height: 1.4em;
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.load-progress-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.game-load-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#game-load-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #238636, #58a6ff, #7ee787);
+  background-size: 200% 100%;
+  transition: width 0.2s ease-out;
+  animation: dfLoadBarShine 2s linear infinite;
+}
+
+@keyframes dfLoadBarShine {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+#game-load-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e6edf3;
+  font-variant-numeric: tabular-nums;
+  align-self: flex-end;
+}
+
+.load-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  font-size: 11px;
+  color: #6e7681;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.load-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: color 0.2s;
+}
+
+.load-steps li:last-child {
+  border-bottom: none;
+}
+
+.load-steps li.active {
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+.load-steps li.done {
+  color: #7ee787;
+}
+
+.load-steps .step-mark {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+}
+
+#game-load-retry {
+  display: none;
+  margin-top: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 81, 73, 0.5);
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  cursor: pointer;
+}
+
+#game-load-retry.visible {
+  display: inline-block;
+}
+
+#game-load-retry:hover {
+  background: rgba(248, 81, 73, 0.25);
+}
+
+/* ── Landscape mobile / APK ── */
+@media (orientation: landscape) and (max-height: 600px) {
+  #game-load-screen {
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+
+  .load-screen-content {
+    width: min(720px, 96vw);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    text-align: left;
+    gap: 16px 24px;
+    padding: 20px 24px;
+  }
+
+  .load-brand-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+
+  .load-logo {
+    width: 72px;
+    height: 72px;
+  }
+
+  .load-title {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .load-progress-col {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #game-load-label {
+    max-width: none;
+    text-align: left;
+  }
+
+  .load-steps {
+    max-height: 72px;
+    font-size: 10px;
+  }
+
+  #game-load-retry.visible {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #game-load-screen.visible,
+  .load-logo,
+  #game-load-bar-fill {
+    animation: none;
+  }
+
+  .load-logo {
+    transform: none;
+  }
+}

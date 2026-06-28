@@ -17,8 +17,18 @@ Deploy split:
 Configurar VPS una vez:
 
 ```bash
+# IP por defecto 192.99.54.33 — override con VPS_IP o VPS_HOST
 bash scripts/configure-gamedevforge-vps.sh
+# Ejemplo migración: VPS_IP=203.0.113.10 bash scripts/deploy-vps.sh
 ```
+
+Variables opcionales para scripts VPS (`deploy-vps.sh`, `sync-vps-env.sh`, `vps-setup-avps.sh`, `configure-gamedevforge-vps.sh`):
+
+| Variable | Default | Uso |
+|----------|---------|-----|
+| `VPS_IP` | `192.99.54.33` | IP del servidor |
+| `VPS_USER` | `ubuntu` | Usuario SSH |
+| `VPS_HOST` | `ubuntu@VPS_IP` | Override completo (tiene prioridad si se define explícitamente) |
 
 ## Vercel
 

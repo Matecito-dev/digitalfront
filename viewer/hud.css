@@ -202,6 +202,15 @@
   box-shadow: 0 4px 16px #00000088;
 }
 #refuge-banner.visible { display: flex; }
+#refuge-banner.first-spawn {
+  border-color: #3fb950;
+  box-shadow: 0 0 0 2px #23863666, 0 4px 20px #000000aa;
+  animation: refuge-pulse 2s ease-in-out 3;
+}
+@keyframes refuge-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #23863666, 0 4px 20px #000000aa; }
+  50% { box-shadow: 0 0 0 4px #3fb95099, 0 4px 24px #23863655; }
+}
 #refuge-banner button {
   min-width: 44px;
   min-height: 44px;

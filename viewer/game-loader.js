@@ -12,6 +12,7 @@
 
   var loadPromise = null;
   var scriptsLoaded = false;
+  var stepsInitialized = false;
 
   function formatError(err, fallback) {
     if (!err) return fallback;
@@ -33,24 +34,91 @@
     }
   }
 
+  function initLoadSteps() {
+    if (stepsInitialized) return;
+    var list = document.getElementById("game-load-steps");
+    if (!list) return;
+    list.innerHTML = STEPS.map(function (step, i) {
+      return (
+        '<li data-step="' + i + '">' +
+        '<span class="step-mark">○</span>' +
+        '<span class="step-label">' + step.label + "</span>" +
+        "</li>"
+      );
+    }).join("");
+    stepsInitialized = true;
+  }
+
+  function setActiveStep(label) {
+    var list = document.getElementById("game-load-steps");
+    if (!list) return;
+    var idx = STEPS.findIndex(function (s) { return s.label === label; });
+    if (idx < 0) idx = 0;
+    var items = list.querySelectorAll("li");
+    for (var j = 0; j < items.length; j++) {
+      var row = items[j];
+      if (!row) continue;
+      row.classList.remove("active", "done");
+      var m = row.querySelector(".step-mark");
+      if (j < idx) {
+        row.classList.add("done");
+        if (m) m.textContent = "✓";
+      } else if (j === idx) {
+        row.classList.add("active");
+        if (m) m.textContent = "◉";
+      } else if (m) {
+        m.textContent = "○";
+      }
+    }
+  }
+
   function ensureLoadScreen() {
     var el = document.getElementById("game-load-screen");
-    if (el) return el;
-    el = document.createElement("div");
-    el.id = "game-load-screen";
-    el.innerHTML =
-      '<div class="game-load-panel">' +
-      '<h2>Preparando el frente</h2>' +
-      '<p id="game-load-label">Iniciando…</p>' +
-      '<div class="game-load-bar-track"><div id="game-load-bar-fill"></div></div>' +
-      '<p id="game-load-pct">0%</p>' +
-      "</div>";
-    document.body.appendChild(el);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "game-load-screen";
+      el.setAttribute("aria-live", "polite");
+      el.setAttribute("aria-busy", "true");
+      el.innerHTML =
+        '<div class="load-screen-bg" aria-hidden="true"></div>' +
+        '<div class="load-screen-content">' +
+        '<div class="load-brand-col">' +
+        '<img class="load-logo" src="./assets/dglogo.png" width="96" height="96" alt="">' +
+        '<h2 class="load-title">Digital Front</h2>' +
+        "</div>" +
+        '<div class="load-progress-col">' +
+        '<p id="game-load-label">Iniciando…</p>' +
+        '<div class="load-progress-wrap">' +
+        '<div class="game-load-bar-track"><div id="game-load-bar-fill"></div></div>' +
+        '<span id="game-load-pct">0%</span>' +
+        "</div>" +
+        '<ul id="game-load-steps" class="load-steps"></ul>' +
+        '<button type="button" id="game-load-retry" class="hidden">Reintentar</button>' +
+        "</div>" +
+        "</div>";
+      document.body.appendChild(el);
+      stepsInitialized = false;
+    }
+    initLoadSteps();
+    var retry = document.getElementById("game-load-retry");
+    if (retry && !retry.dataset.bound) {
+      retry.dataset.bound = "1";
+      retry.addEventListener("click", function () {
+        retry.classList.remove("visible");
+        loadPromise = null;
+        void window.DfLoadAndStartGame();
+      });
+    }
     return el;
   }
 
   function hideLoadScreen() {
-    document.getElementById("game-load-screen")?.classList.remove("visible");
+    var el = document.getElementById("game-load-screen");
+    if (el) {
+      el.classList.remove("visible", "error");
+      el.setAttribute("aria-busy", "false");
+    }
+    document.getElementById("game-load-retry")?.classList.remove("visible");
   }
 
   function setProgress(pct, label) {
@@ -61,6 +129,7 @@
     if (fill) fill.style.width = clamped + "%";
     if (pctEl) pctEl.textContent = clamped + "%";
     if (labelEl && label) labelEl.textContent = label;
+    if (label) setActiveStep(label);
   }
 
   function showSessionLoadError(message) {
@@ -95,7 +164,6 @@
     return loadScriptFromUrl(resolveSrc(src), src);
   }
 
-  /** Descarga con progreso real y ejecuta vía blob: (evita scripts inline gigantes). */
   function loadScriptWithProgress(src, onFraction) {
     var url = resolveSrc(src);
     if (document.querySelector('script[data-df-src="' + src + '"]')) {
@@ -179,6 +247,15 @@
       reportProgress(done, 0, 0, step.label);
     }
     scriptsLoaded = true;
+    var list = document.getElementById("game-load-steps");
+    if (list) {
+      list.querySelectorAll("li").forEach(function (li) {
+        li.classList.remove("active");
+        li.classList.add("done");
+        var mark = li.querySelector(".step-mark");
+        if (mark) mark.textContent = "✓";
+      });
+    }
   }
 
   function waitForGameBoot(timeoutMs) {
@@ -208,6 +285,8 @@
       var screen = ensureLoadScreen();
       screen.classList.remove("error");
       screen.classList.add("visible");
+      screen.setAttribute("aria-busy", "true");
+      document.getElementById("game-load-retry")?.classList.remove("visible");
       setProgress(0, "Preparando recursos…");
 
       try {
@@ -235,6 +314,8 @@
         var msg = formatError(err, "No se pudo cargar el juego. Recargá con Ctrl+Shift+R.");
         setProgress(0, msg);
         screen.classList.add("error");
+        screen.setAttribute("aria-busy", "false");
+        document.getElementById("game-load-retry")?.classList.add("visible");
         showSessionLoadError(msg);
         loadPromise = null;
         throw new Error(msg);

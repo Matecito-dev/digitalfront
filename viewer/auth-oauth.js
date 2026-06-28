@@ -16,6 +16,15 @@
     return window.Capacitor?.isNativePlatform?.() === true;
   }
 
+  const NATIVE_OAUTH_APP_LINK_HINT =
+    "Si autorizaste pero no volviste a la app: cerrá el navegador, reabrí Digital Front y repetí el login. " +
+    "Comprobá que play.gamedevforge.com tenga assetlinks.json y que el redirect sea https://play.gamedevforge.com/auth/…/callback.";
+
+  function nativeOAuthHint(prefix) {
+    if (!isNativePlatform()) return prefix;
+    return `${prefix} ${NATIVE_OAUTH_APP_LINK_HINT}`;
+  }
+
   function getNativeOAuthRedirect(callbackPath) {
     return `${NATIVE_OAUTH_ORIGIN}${callbackPath}`;
   }
@@ -285,7 +294,9 @@
         throw new Error("Cancelaste la autorización en el proveedor.");
       }
       if (desc.includes("redirect_uri") || err === "invalid_request") {
-        throw new Error(`Redirect URI rechazada (${desc}). En APK debe ser play.gamedevforge.com.`);
+        throw new Error(nativeOAuthHint(
+          `Redirect URI rechazada (${desc}). En APK debe ser https://play.gamedevforge.com/auth/…/callback.`,
+        ));
       }
       throw new Error(desc);
     }
@@ -322,7 +333,9 @@
       clearPkceStorage();
       const msg = e?.message || String(e);
       if (msg.includes("invalid_redirect_uri")) {
-        throw new Error("Redirect URI no autorizada en el servidor. Debe ser https://play.gamedevforge.com/auth/x/callback.");
+        throw new Error(nativeOAuthHint(
+          "Redirect URI no autorizada en el servidor. Debe ser https://play.gamedevforge.com/auth/x/callback (o /auth/github/callback).",
+        ));
       }
       if (msg.includes("code_verifier") || msg.includes("PKCE")) {
         throw new Error("PKCE inválido — volvé a pulsar «Continuar con X» (no recargues la app a mitad del flujo).");
@@ -412,7 +425,15 @@
     const xBtn = document.getElementById("login-x");
     const status = document.getElementById("status");
     if (err) err.textContent = "";
-    if (status) status.textContent = "Redirigiendo al proveedor…";
+    if (isNativePlatform()) {
+      if (status) status.textContent = "Se abrió el navegador — al autorizar volvés a la app automáticamente";
+      if (err) {
+        err.textContent =
+          "OAuth en APK: al terminar en GitHub/X deberías volver solo. Si te quedás en el navegador, cerralo y repetí el login.";
+      }
+    } else if (status) {
+      status.textContent = "Redirigiendo al proveedor…";
+    }
     if (ghBtn) ghBtn.classList.add("oauth-loading");
     if (xBtn) xBtn.classList.add("oauth-loading");
     try {

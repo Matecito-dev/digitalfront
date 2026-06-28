@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
 import { BRAND } from "../../src/shared/branding.js";
+import { spawnTestViewerServer, stopTestViewerServer } from "./testViewerServer.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SEED = BRAND.defaultWorldSeed;
@@ -109,22 +110,12 @@ describe("ws multi-client AOI consistency", () => {
 
   beforeAll(async () => {
     port = 36_000 + Math.floor(Math.random() * 4_000);
-    serverProc = spawn("npx", ["tsx", "scripts/viewer-server.ts"], {
-      cwd: root,
-      env: {
-        ...process.env,
-        PORT: String(port),
-        HOST: "127.0.0.1",
-        DATABASE_URL: "postgresql://invalid:invalid@127.0.0.1:1/none",
-        REDIS_URL: "redis://127.0.0.1:1",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    serverProc = spawnTestViewerServer(root, port);
     await waitForHttp(port);
   }, 120_000);
 
-  afterAll(() => {
-    serverProc?.kill("SIGTERM");
+  afterAll(async () => {
+    await stopTestViewerServer(serverProc);
     serverProc = null;
   });
 

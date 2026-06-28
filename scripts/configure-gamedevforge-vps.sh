@@ -3,7 +3,9 @@
 # DNS (Cloudflare): A api → IP del VPS | CNAME play → Vercel
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-ubuntu@192.99.54.33}"
+VPS_IP="${VPS_IP:-192.99.54.33}"
+VPS_USER="${VPS_USER:-ubuntu}"
+VPS_HOST="${VPS_HOST:-${VPS_USER}@${VPS_IP}}"
 API_DOMAIN="${API_DOMAIN:-api.gamedevforge.com}"
 PLAY_DOMAIN="${PLAY_DOMAIN:-play.gamedevforge.com}"
 PORT="${AVPS_PORT:-3009}"
@@ -11,11 +13,12 @@ SLUG="avps"
 # Orígenes permitidos (frontend Vercel + apex)
 CORS_ORIGINS="https://${PLAY_DOMAIN},https://gamedevforge.com,https://www.gamedevforge.com"
 
-echo "→ Configurando ${API_DOMAIN} en ${VPS_HOST}"
+echo "→ Configurando ${API_DOMAIN} en ${VPS_HOST} (IP ${VPS_IP})"
 
 ssh -o ConnectTimeout=15 "${VPS_HOST}" bash -s <<REMOTE
 set -euo pipefail
 API_DOMAIN="${API_DOMAIN}"
+VPS_IP="${VPS_IP}"
 PORT="${PORT}"
 SLUG="${SLUG}"
 CORS_ORIGINS="${CORS_ORIGINS}"
@@ -41,18 +44,18 @@ else
 fi
 
 # Acceso por IP (legacy / debug)
-if ! sudo grep -q "http://192.99.54.33" "\${CADDY}" 2>/dev/null; then
-  sudo tee -a "\${CADDY}" >/dev/null <<'IPBLOCK'
+if ! sudo grep -q "http://\${VPS_IP}" "\${CADDY}" 2>/dev/null; then
+  sudo tee -a "\${CADDY}" >/dev/null <<IPBLOCK
 
-http://192.99.54.33 {
-    reverse_proxy 127.0.0.1:3009
+http://\${VPS_IP} {
+    reverse_proxy 127.0.0.1:\${PORT}
     handle /apk/* {
-        root * /srv/avps/apk
+        root * /srv/\${SLUG}/apk
         file_server
     }
 }
 IPBLOCK
-  echo "✓ Caddy: bloque IP legacy"
+  echo "✓ Caddy: bloque IP legacy (\${VPS_IP})"
 fi
 
 sudo caddy validate --config "\${CADDY}"
@@ -81,8 +84,10 @@ echo ""
 echo "✓ VPS listo para ${API_DOMAIN}"
 echo ""
 echo "Cloudflare (recomendado al inicio — nube gris / DNS only):"
-echo "  A    api   → 192.99.54.33"
+echo "  A    api   → ${VPS_IP}"
 echo ""
+echo "Override de host: VPS_IP=1.2.3.4 bash scripts/configure-gamedevforge-vps.sh"
+echo "  (o VPS_HOST=user@host si necesitás usuario distinto de ubuntu)"
 echo "Vercel:"
 echo "  CNAME play → cname.vercel-dns.com  (o dominio custom en proyecto)"
 echo "  Env: DF_API_URL=https://${API_DOMAIN}"

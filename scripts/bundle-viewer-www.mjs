@@ -27,6 +27,9 @@ const COPY_FILES = [
   'path-worker.js',
   'tile-sw.js',
   'hud.css',
+  'hud-desktop.css',
+  'login.css',
+  'load-screen.css',
   'config.js',
   'capacitor-init.js',
 ];
@@ -68,6 +71,9 @@ html = html
   .replace(/src="audio\/sfx\.js"/g, 'src="./audio/sfx.js"')
   .replace(/src="audio\/bgm\.js"/g, 'src="./audio/bgm.js"')
   .replace(/href="hud\.css"/g, 'href="./hud.css"')
+  .replace(/href="hud-desktop\.css"/g, 'href="./hud-desktop.css"')
+  .replace(/href="login\.css"/g, 'href="./login.css"')
+  .replace(/href="load-screen\.css"/g, 'href="./load-screen.css"')
   .replace(/src="vendor\/phaser\.min\.js"/g, 'src="./vendor/phaser.min.js"')
   .replace(/new Worker\('\/path-worker\.js'\)/g, "new Worker('./path-worker.js')")
   .replace(/new Worker\("\/path-worker\.js"\)/g, 'new Worker("./path-worker.js")');

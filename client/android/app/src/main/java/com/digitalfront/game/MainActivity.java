@@ -1,4 +1,4 @@
-package com.velis.game;
+package com.digitalfront.game;
 
 import com.getcapacitor.BridgeActivity;
 

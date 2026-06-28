@@ -76,6 +76,10 @@ import { processDailyQuestEvents } from "../src/mmo/dailyQuests.js";
 import { rebuildRankingFromPg } from "../src/mmo/ranking.js";
 import { getPool } from "../src/mmo/db.js";
 import { getRedis } from "../src/mmo/redis.js";
+import {
+  scheduleRankingRebuild,
+  type RankingRebuildScheduler,
+} from "./mmoRankingSchedule.js";
 import type { SimEvent } from "../src/sim/events.js";
 import {
   applyWorldSnapshot,
@@ -353,7 +357,6 @@ interface WsSimClient {
 }
 
 const PLAY_TIME_FLUSH_MS = 60_000;
-const RANKING_REBUILD_MS = 5 * 60_000;
 
 const wsClients = new Set<WsSimClient>();
 
@@ -737,19 +740,20 @@ function flushAllPlayTimes(): void {
 }
 
 let playTimeInterval: ReturnType<typeof setInterval> | null = null;
-let rankingRebuildInterval: ReturnType<typeof setInterval> | null = null;
+let rankingRebuildScheduler: RankingRebuildScheduler | null = null;
 
 function startMmoBackgroundJobs(): void {
   if (!mmoCtx.dbReady || !mmoCtx.redisReady) return;
   if (!playTimeInterval) {
     playTimeInterval = setInterval(flushAllPlayTimes, PLAY_TIME_FLUSH_MS);
   }
-  if (!rankingRebuildInterval) {
-    rankingRebuildInterval = setInterval(() => {
-      void rebuildRankingFromPg(getPool(), getRedis()).catch(err => {
-        console.warn("[mmo-ranking] rebuild failed:", err);
-      });
-    }, RANKING_REBUILD_MS);
+  if (!rankingRebuildScheduler) {
+    rankingRebuildScheduler = scheduleRankingRebuild({
+      dbReady: mmoCtx.dbReady,
+      redisReady: mmoCtx.redisReady,
+      rebuild: () => rebuildRankingFromPg(getPool(), getRedis()),
+      onError: err => console.warn("[mmo-ranking] rebuild failed:", err),
+    });
   }
 }
 

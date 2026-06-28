@@ -23,7 +23,7 @@
           window.showSessionPanel(result.profile);
         }
       } catch (e) {
-        window.showLoginOverlay?.(e?.message || "OAuth falló al volver a la app.");
+        window.showLoginOverlay?.(e?.message || "OAuth falló al volver a la app (App Link). Cerrá el navegador y repetí el login.");
       }
     })();
   });
