@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.digitalfront.game",
+      "sha256_cert_fingerprints": [
+        "81:04:29:6D:DD:AA:9A:5A:0F:BD:1B:C5:DB:B8:D4:E0:F5:53:CE:D2:80:04:3E:0E:D3:B2:30:A9:AB:3D:B4:9A"
+      ]
+    }
+  }
+]

@@ -3,12 +3,30 @@
   const cap = window.Capacitor;
   if (!cap?.isNativePlatform?.()) return;
 
+  document.documentElement.classList.add("capacitor-native");
+
   const plugins = cap.Plugins ?? {};
 
   plugins.ScreenOrientation?.lock?.({ orientation: "landscape" }).catch(() => {});
 
   plugins.StatusBar?.setOverlaysWebView?.({ overlay: true }).catch(() => {});
   plugins.StatusBar?.setStyle?.({ style: "DARK" }).catch(() => {});
+
+  plugins.App?.addListener?.("appUrlOpen", ({ url }) => {
+    if (!url || typeof window.DfAuth?.handleOAuthReturnUrl !== "function") return;
+    if (!/\/auth\/(x|github)\/callback/.test(url)) return;
+    void (async () => {
+      try {
+        await plugins.Browser?.close?.();
+        const result = await window.DfAuth.handleOAuthReturnUrl(url);
+        if (result?.profile && typeof window.showSessionPanel === "function") {
+          window.showSessionPanel(result.profile);
+        }
+      } catch (e) {
+        window.showLoginOverlay?.(e?.message || "OAuth falló al volver a la app.");
+      }
+    })();
+  });
 
   plugins.App?.addListener?.("backButton", () => {
     const modals = [

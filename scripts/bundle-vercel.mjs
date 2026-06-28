@@ -74,6 +74,10 @@ for (const d of COPY_DIRS) {
   await cp(join(VIEWER, d), join(OUT, d), { recursive: true });
 }
 
+try {
+  await cp(join(VIEWER, '.well-known'), join(OUT, '.well-known'), { recursive: true });
+} catch { /* optional */ }
+
 await cp(join(VIEWER, 'vendor', 'phaser.min.js'), join(OUT, 'vendor', 'phaser.min.js'));
 
 let html = await readFile(join(VIEWER, 'index.html'), 'utf8');

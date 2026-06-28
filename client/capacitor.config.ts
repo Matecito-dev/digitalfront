@@ -18,6 +18,10 @@ const config = {
     ScreenOrientation: {
       orientation: "landscape",
     },
+    Keyboard: {
+      resize: "body",
+      resizeOnFullScreen: true,
+    },
   },
 };
 

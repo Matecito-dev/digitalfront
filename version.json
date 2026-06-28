@@ -1,9 +1,9 @@
 {
-  "version": "0.0.17",
-  "title": "Cámara a pantalla completa",
+  "version": "0.0.18",
+  "title": "APK Android optimizada",
   "changelog": [
-    "La cámara del mapa ocupa todo el viewport en desktop y mobile (visualViewport + 100dvh).",
-    "Chat funcional tras lazy-load: listeners registrados al entrar al mundo.",
-    "Campamentos: proximidad 6 celdas, modal coherente y acciones sin cerrar el panel."
+    "Build APK sincronizado con web: auth-ui, session-boot, game-loader, game-core y OAuth callbacks.",
+    "Login compacto en landscape nativo; OAuth X/GitHub vía Browser + App Links (play.gamedevforge.com).",
+    "Ajustes de servidor en primer arranque APK; perfil low automático en dispositivos con poca RAM."
   ]
 }

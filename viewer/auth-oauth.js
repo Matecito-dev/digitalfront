@@ -8,8 +8,31 @@
   const PKCE_TTL_MS = 15 * 60 * 1000;
   const GITHUB_CALLBACK = "/auth/github/callback";
   const X_CALLBACK = "/auth/x/callback";
+  const NATIVE_OAUTH_ORIGIN = "https://play.gamedevforge.com";
 
   let cachedProviders = null;
+
+  function isNativePlatform() {
+    return window.Capacitor?.isNativePlatform?.() === true;
+  }
+
+  function getNativeOAuthRedirect(callbackPath) {
+    return `${NATIVE_OAUTH_ORIGIN}${callbackPath}`;
+  }
+
+  function getOAuthRedirectUri(callbackPath, fallback) {
+    if (isNativePlatform()) return getNativeOAuthRedirect(callbackPath);
+    return currentRedirectUri(callbackPath, fallback);
+  }
+
+  async function openOAuthUrl(url) {
+    const Browser = window.Capacitor?.Plugins?.Browser;
+    if (isNativePlatform() && Browser?.open) {
+      await Browser.open({ url });
+      return;
+    }
+    location.href = url;
+  }
 
   function getApiUrl(path) {
     if (typeof window.apiUrl === "function") return window.apiUrl(path);
@@ -135,7 +158,7 @@
     if (!gh?.clientId) {
       throw new Error("GitHub OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
-    const redirectUri = currentRedirectUri(GITHUB_CALLBACK, gh.redirectUri);
+    const redirectUri = getOAuthRedirectUri(GITHUB_CALLBACK, gh.redirectUri);
     const state = randomString(16);
     sessionStorage.setItem(OAUTH_STATE_KEY, state);
     const params = new URLSearchParams({
@@ -144,7 +167,7 @@
       scope: "read:user",
       state,
     });
-    location.href = `https://github.com/login/oauth/authorize?${params}`;
+    await openOAuthUrl(`https://github.com/login/oauth/authorize?${params}`);
   }
 
   async function loginWithX() {
@@ -153,7 +176,7 @@
     if (!x?.clientId) {
       throw new Error("X OAuth no configurado. Revisa las variables en Vercel y el VPS.");
     }
-    const redirectUri = currentRedirectUri(X_CALLBACK, x.redirectUri);
+    const redirectUri = getOAuthRedirectUri(X_CALLBACK, x.redirectUri);
     const verifier = randomString(32);
     storePkceVerifier(verifier, redirectUri);
     const challenge = await sha256Base64Url(verifier);
@@ -168,7 +191,7 @@
       code_challenge: challenge,
       code_challenge_method: "S256",
     });
-    location.href = `https://x.com/i/oauth2/authorize?${params}`;
+    await openOAuthUrl(`https://x.com/i/oauth2/authorize?${params}`);
   }
 
   async function exchangeOAuth(path, body) {
@@ -251,17 +274,20 @@
     return path === GITHUB_CALLBACK || path === X_CALLBACK;
   }
 
-  async function handleOAuthCallback() {
-    const path = location.pathname.replace(/\/$/, "");
-    if (path !== GITHUB_CALLBACK && path !== X_CALLBACK) return false;
-
-    const params = new URLSearchParams(location.search);
+  async function processOAuthCallbackParams(path, params) {
     const code = params.get("code");
     const err = params.get("error");
     if (err) {
       cleanOAuthUrl();
       clearPkceStorage();
-      throw new Error(params.get("error_description") || err);
+      const desc = params.get("error_description") || err;
+      if (err === "access_denied") {
+        throw new Error("Cancelaste la autorización en el proveedor.");
+      }
+      if (desc.includes("redirect_uri") || err === "invalid_request") {
+        throw new Error(`Redirect URI rechazada (${desc}). En APK debe ser play.gamedevforge.com.`);
+      }
+      throw new Error(desc);
     }
     if (!code) return false;
 
@@ -270,18 +296,18 @@
     if (savedState && returnedState && savedState !== returnedState) {
       cleanOAuthUrl();
       clearPkceStorage();
-      throw new Error("Sesión OAuth expirada. Volvé a intentar iniciar sesión.");
+      throw new Error("Sesión OAuth expirada (state no coincide). Volvé a pulsar el botón de login.");
     }
     sessionStorage.removeItem(OAUTH_STATE_KEY);
 
     try {
       let data;
       if (path === GITHUB_CALLBACK) {
-        const redirectUri = currentRedirectUri(GITHUB_CALLBACK, null);
+        const redirectUri = getOAuthRedirectUri(GITHUB_CALLBACK, null);
         data = await exchangeOAuth("/api/auth/oauth/github", { code, redirectUri });
       } else {
         const codeVerifier = loadPkceVerifier();
-        const redirectUri = loadStoredRedirectUri() || currentRedirectUri(X_CALLBACK, null);
+        const redirectUri = loadStoredRedirectUri() || getOAuthRedirectUri(X_CALLBACK, null);
         if (!codeVerifier) {
           throw new Error("Faltan datos de X (PKCE). Volvé a pulsar «Continuar con X».");
         }
@@ -294,8 +320,33 @@
     } catch (e) {
       cleanOAuthUrl();
       clearPkceStorage();
+      const msg = e?.message || String(e);
+      if (msg.includes("invalid_redirect_uri")) {
+        throw new Error("Redirect URI no autorizada en el servidor. Debe ser https://play.gamedevforge.com/auth/x/callback.");
+      }
+      if (msg.includes("code_verifier") || msg.includes("PKCE")) {
+        throw new Error("PKCE inválido — volvé a pulsar «Continuar con X» (no recargues la app a mitad del flujo).");
+      }
       throw e;
     }
+  }
+
+  async function handleOAuthCallback() {
+    const path = location.pathname.replace(/\/$/, "");
+    if (path !== GITHUB_CALLBACK && path !== X_CALLBACK) return false;
+    return processOAuthCallbackParams(path, new URLSearchParams(location.search));
+  }
+
+  async function handleOAuthReturnUrl(urlString) {
+    let parsed;
+    try {
+      parsed = new URL(urlString);
+    } catch {
+      return false;
+    }
+    const path = parsed.pathname.replace(/\/$/, "");
+    if (path !== GITHUB_CALLBACK && path !== X_CALLBACK) return false;
+    return processOAuthCallbackParams(path, parsed.searchParams);
   }
 
   async function tryRestoreDfSession() {
@@ -394,6 +445,8 @@
     loginWithX,
     loginAsGuest,
     handleOAuthCallback,
+    handleOAuthReturnUrl,
+    getNativeOAuthRedirect,
     tryRestoreDfSession,
     validateDfSession,
     refreshOAuthButtons,

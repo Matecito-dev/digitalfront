@@ -116,7 +116,10 @@ function resolveDeviceProfile() {
   const q = new URLSearchParams(location.search).get('profile');
   if (q === 'desktop' || q === 'mobile' || q === 'low') return q;
   try {
-    if (window.Capacitor?.getPlatform?.() === 'android') return 'mobile';
+    if (window.Capacitor?.getPlatform?.() === 'android') {
+      if (navigator.deviceMemory && navigator.deviceMemory < 4) return 'low';
+      return 'mobile';
+    }
   } catch { /* ignore */ }
   if (isMobileDevice()) return 'mobile';
   return 'desktop';
@@ -131,9 +134,6 @@ const PERF = {
 
 const DEVICE_PROFILE = resolveDeviceProfile();
 const PERF_BUDGET = { ...(PERF[DEVICE_PROFILE] ?? PERF.desktop) };
-if (DEVICE_PROFILE === "mobile" && navigator.deviceMemory && navigator.deviceMemory < 4) {
-  PERF_BUDGET.maxTiles = 48;
-}
 const OTHER_SQUAD_RENDER_CAP = PERF_BUDGET.otherSquadCap ?? 8;
 
 function labelsEnabledAtZoom(zoom) {

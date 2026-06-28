@@ -393,6 +393,58 @@ button.sec:hover { background: #30363d; }
   #login-hero { order: 2; }
   #login-box { order: 1; }
 }
+html.capacitor-native #login-hero-banner { display: none !important; }
+@media (orientation: landscape) and (max-height: 520px) {
+  html.capacitor-native #login-overlay {
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    -webkit-overflow-scrolling: touch;
+  }
+  html.capacitor-native #login-shell {
+    grid-template-columns: 1fr;
+    max-width: min(480px, 94vw);
+    width: 100%;
+    gap: 12px;
+  }
+  html.capacitor-native #login-hero {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  html.capacitor-native #login-hero-logo {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 0;
+  }
+  html.capacitor-native #login-hero h1 { font-size: 20px; }
+  html.capacitor-native #login-hero-tagline {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html.capacitor-native #login-changelog,
+  html.capacitor-native .login-version-row { display: none; }
+  html.capacitor-native #login-box {
+    padding: 16px 16px 14px;
+  }
+  html.capacitor-native #login-oauth a[role="button"] { width: 100%; }
+  html.capacitor-native #login-session-profile {
+    padding: 10px;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  html.capacitor-native #login-session-avatar-wrap,
+  html.capacitor-native #login-session-avatar,
+  html.capacitor-native #login-session-avatar-fallback {
+    width: 48px;
+    height: 48px;
+  }
+  html.capacitor-native #login-session-avatar-fallback { font-size: 20px; }
+}
 #login-hero {
   background: linear-gradient(160deg, #161b22f2 0%, #0d1117f5 100%);
   border: 1px solid #30363d;
@@ -757,6 +809,21 @@ html.df-await-session-ui #login-boot-status { display: block; }
 <!-- Map canvas -->
 <div id="game"></div>
 
+<div id="settings-overlay">
+  <div id="settings-box">
+    <h2>Servidor del juego</h2>
+    <p>Introduce la URL del API (Tailscale o LAN). Ejemplo: <code>http://100.x.y.z:3333</code></p>
+    <label for="settings-server-url">URL del servidor</label>
+    <input type="url" id="settings-server-url" placeholder="http://100.x.y.z:3333" autocomplete="off" inputmode="url">
+    <div id="settings-error"></div>
+    <div id="settings-status"></div>
+    <div id="settings-actions">
+      <button type="button" id="settings-test">Probar conexión</button>
+      <button type="button" id="settings-save">Guardar y continuar</button>
+    </div>
+  </div>
+</div>
+
 <div id="login-overlay">
   <div id="login-shell">
     <aside id="login-hero">
@@ -1088,10 +1155,75 @@ function isCapacitorNative() {
 }
 
 function needsServerSettings() {
-  return false;
+  if (!isCapacitorNative()) return false;
+  const configured = window.DF_CONFIG?.apiBase?.replace(/\/$/, "") || "";
+  const stored = localStorage.getItem(DF_API_KEY)?.replace(/\/$/, "") || "";
+  return !stored && !configured;
 }
 
-function hideSettingsOverlay() { /* ajustes de servidor retirados en web */ }
+function showSettingsOverlay() {
+  const el = document.getElementById("settings-overlay");
+  if (!el) return;
+  el.classList.add("visible");
+  const input = document.getElementById("settings-server-url");
+  const saved = localStorage.getItem(DF_API_KEY);
+  if (input && saved) input.value = saved;
+}
+
+function hideSettingsOverlay() {
+  document.getElementById("settings-overlay")?.classList.remove("visible");
+}
+
+async function testServerConnection() {
+  const input = document.getElementById("settings-server-url");
+  const errEl = document.getElementById("settings-error");
+  const statusEl = document.getElementById("settings-status");
+  const url = input?.value?.trim()?.replace(/\/$/, "");
+  if (errEl) errEl.textContent = "";
+  if (statusEl) statusEl.textContent = "";
+  if (!url) {
+    if (errEl) errEl.textContent = "Introduce una URL.";
+    return;
+  }
+  if (statusEl) statusEl.textContent = "Probando…";
+  try {
+    const ctrl = typeof AbortSignal !== "undefined" && AbortSignal.timeout
+      ? AbortSignal.timeout(8000)
+      : undefined;
+    const r = await fetch(`${url}/api/profile/me`, { signal: ctrl });
+    if (statusEl) {
+      statusEl.textContent = r.ok || r.status === 401
+        ? "Servidor alcanzable."
+        : `Respondió con código ${r.status}.`;
+    }
+  } catch {
+    if (errEl) errEl.textContent = "No se pudo conectar. Revisa la URL y que el teléfono llegue al servidor.";
+    if (statusEl) statusEl.textContent = "";
+  }
+}
+
+function saveServerSettings() {
+  const input = document.getElementById("settings-server-url");
+  const errEl = document.getElementById("settings-error");
+  const url = input?.value?.trim()?.replace(/\/$/, "");
+  if (errEl) errEl.textContent = "";
+  if (!url) {
+    if (errEl) errEl.textContent = "Introduce una URL antes de guardar.";
+    return;
+  }
+  localStorage.setItem(DF_API_KEY, url);
+  hideSettingsOverlay();
+  if (typeof window.DfAuth?.refreshOAuthButtons === "function") {
+    void window.DfAuth.refreshOAuthButtons();
+  }
+}
+
+document.getElementById("settings-test")?.addEventListener("click", () => { void testServerConnection(); });
+document.getElementById("settings-save")?.addEventListener("click", saveServerSettings);
+
+if (needsServerSettings()) {
+  showSettingsOverlay();
+}
 
 /** Tamaño real del viewport (mobile: visualViewport evita barras del navegador). */
 function getGameViewportSize() {

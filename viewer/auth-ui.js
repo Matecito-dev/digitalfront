@@ -10,6 +10,27 @@
     guest: "Jugador invitado",
   };
 
+  function formatOAuthErrorMessage(message) {
+    if (!message) return "";
+    var msg = String(message);
+    if (msg.includes("invalid_redirect_uri") || msg.includes("Redirect URI")) {
+      return "OAuth: redirect URI no autorizada. En APK debe ser play.gamedevforge.com — revisá assetlinks.json y consola X/GitHub.";
+    }
+    if (msg.includes("PKCE") || msg.includes("code_verifier") || msg.includes("Faltan datos de X")) {
+      return msg;
+    }
+    if (msg.includes("state no coincide") || msg.includes("Sesión OAuth expirada")) {
+      return "La sesión OAuth expiró. Volvé a pulsar «Continuar con X» o GitHub.";
+    }
+    if (msg.includes("Cancelaste la autorización")) {
+      return "Cancelaste el inicio de sesión en el proveedor.";
+    }
+    if (msg.includes("Respuesta inválida del servidor") || msg.includes("frontend en vez del API")) {
+      return "El servidor API no respondió correctamente. Revisá la URL en Ajustes (APK) o recargá sin caché.";
+    }
+    return msg;
+  }
+
   function applyLoginVersionInfo() {
     window.paintVersionInfo?.();
   }
@@ -60,7 +81,7 @@
     document.documentElement.classList.remove("df-await-session-ui");
     var boot = document.getElementById("login-boot-status");
     if (boot) boot.style.display = "none";
-    if (err) err.textContent = message ?? "";
+    if (err) err.textContent = formatOAuthErrorMessage(message) ?? "";
     var status = document.getElementById("status");
     if (status) status.textContent = "Identifícate para entrar al batallón";
     applyLoginVersionInfo();
@@ -158,7 +179,7 @@
     var urlErr = urlParams.get("oauth_error");
     if (urlErr) {
       history.replaceState(null, "", location.pathname + location.hash);
-      showLoginOverlay(decodeURIComponent(urlErr));
+      showLoginOverlay(formatOAuthErrorMessage(decodeURIComponent(urlErr)));
       return;
     }
     if (urlParams.get("signed_in") === "1") {
@@ -167,7 +188,7 @@
     var oauthErr = sessionStorage.getItem("df_oauth_error");
     if (oauthErr) {
       sessionStorage.removeItem("df_oauth_error");
-      showLoginOverlay(oauthErr);
+      showLoginOverlay(formatOAuthErrorMessage(oauthErr));
       return;
     }
     if (window.DfAuth?.isOAuthCallbackPath?.()) {
